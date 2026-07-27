@@ -1,0 +1,167 @@
+"""
+PharmaRAG — FastAPI backend entry point.
+
+Phase 3: Full RAG pipeline (ChromaDB retrieval + LLM structured output).
+
+Endpoints:
+  GET  /health               → status + retriever chunk count
+  POST /query                → run_pipeline(smiles) → DrugInfo JSON
+  GET  /debug/retrieval      → raw ChromaDB results for a SMILES (no LLM)
+  GET  /debug/query-builder  → show what query would be built for a SMILES
+"""
+
+from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from rag.schema import DrugInfo, QueryRequest
+from rag.pipeline import run_pipeline
+from rag.retriever import get_retriever
+from rag.query_builder import build_retrieval_query
+from ingest.pubchem import enrich_structure
+
+app = FastAPI(
+    title="PharmaRAG API",
+    description="Structured drug-information RAG system — Phase 3",
+    version="0.3.0",
+)
+
+# Allow Next.js dev server and any local origin during development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ── Production endpoints ──────────────────────────────────────────────────────
+
+@app.get("/health")
+async def health():
+    """Health check — reports retriever readiness and chunk count."""
+    retriever = get_retriever()
+    return {
+        "status": "ok",
+        "phase": 3,
+        "retriever_ready": retriever.is_ready(),
+        "chunk_count": retriever.chunk_count(),
+    }
+
+
+@app.post("/query", response_model=None)
+async def query_drug(req: QueryRequest):
+    """
+    Accept a SMILES string and return a structured DrugInfo object.
+
+    Flow: SMILES → PubChem → ChromaDB → Qwen → Pydantic → JSON
+    Falls back to mock data if ChromaDB is empty.
+    """
+    try:
+        result: DrugInfo = await run_pipeline(req.smiles, debug=False)
+        return {"success": True, "data": result.model_dump()}
+    except Exception as exc:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(exc)},
+        )
+
+
+# ── Debug endpoints (not part of the public API contract) ─────────────────────
+
+@app.get("/debug/retrieval")
+async def debug_retrieval(
+    smiles: str = Query(..., description="SMILES string to resolve and retrieve for"),
+    n: int = Query(8, ge=1, le=20, description="Number of chunks to retrieve"),
+):
+    """
+    Run the full retrieval pipeline (PubChem → QueryBuilder → ChromaDB) and
+    return the raw retrieved chunks with distance scores.
+
+    No LLM is called. Use this to verify retrieval quality before connecting Qwen.
+
+    Example:
+        GET /debug/retrieval?smiles=CC(=O)Oc1ccccc1C(=O)O
+    """
+    try:
+        structure_data = await enrich_structure(smiles)
+        query = build_retrieval_query(structure_data)
+        retriever = get_retriever()
+
+        chunks = await retriever.retrieve(query, n_results=n)
+
+        # Summarise field and source coverage
+        field_counts: dict[str, int] = {}
+        for chunk in chunks:
+            f = chunk.get("field", "unknown")
+            field_counts[f] = field_counts.get(f, 0) + 1
+
+        return {
+            "smiles": smiles,
+            "resolved_name": structure_data.get("common_name") or structure_data.get("iupac_name"),
+            "pubchem_cid": structure_data.get("pubchem_cid"),
+            "query": query,
+            "chunk_count_in_db": retriever.chunk_count(),
+            "chunks_returned": len(chunks),
+            "field_coverage": field_counts,
+            "chunks": [
+                {
+                    "rank": i + 1,
+                    "distance": round(chunk["distance"], 4),
+                    "field": chunk.get("field"),
+                    "source": chunk.get("source"),
+                    "url": chunk.get("url"),
+                    "drug": chunk.get("drug"),
+                    "preview": chunk.get("text", "")[:300],
+                }
+                for i, chunk in enumerate(chunks)
+            ],
+        }
+    except Exception as exc:
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(exc)},
+        )
+
+
+@app.get("/debug/query-builder")
+async def debug_query_builder(
+    smiles: str = Query(..., description="SMILES string"),
+    field: str | None = Query(None, description="Optional field context: moa|adme|indications|…"),
+):
+    """
+    Show what retrieval query would be built for a given SMILES + field.
+    Useful for diagnosing why ChromaDB might return irrelevant chunks.
+    """
+    try:
+        structure_data = await enrich_structure(smiles)
+        query = build_retrieval_query(structure_data, field=field)
+        return {
+            "smiles": smiles,
+            "field": field,
+            "query": query,
+            "common_name": structure_data.get("common_name"),
+            "iupac_name": structure_data.get("iupac_name"),
+            "synonyms": structure_data.get("synonyms", [])[:5],
+        }
+    except Exception as exc:
+        return JSONResponse(status_code=500, content={"error": str(exc)})
+
+
+@app.post("/debug/pipeline")
+async def debug_pipeline(req: QueryRequest):
+    """
+    Run the full pipeline with debug=True.
+    Returns the DrugInfo result PLUS retrieved chunks and source_map keys.
+
+    NOT for production use — exposes internal retrieval data.
+    """
+    try:
+        result = await run_pipeline(req.smiles, debug=True)
+        return {"success": True, **result}
+    except Exception as exc:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(exc)},
+        )

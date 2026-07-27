@@ -1,0 +1,22 @@
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+httpx==0.27.1
+pydantic==2.7.4
+pydantic-settings==2.3.4
+python-dotenv==1.0.1
+
+# Vector DB (Phase 2)
+chromadb>=0.5.3
+
+# Embeddings — local via Ollama (no API key needed)
+# Pull the model: ollama pull nomic-embed-text
+ollama>=0.2.1
+
+# LLM clients (Phase 3 — Ollama handles both embeddings + LLM)
+# openai==1.35.7          # for openai provider
+# anthropic==0.30.0       # for anthropic provider
+
+# Testing
+pytest==8.2.2
+pytest-asyncio==0.23.7
+httpx==0.27.1
