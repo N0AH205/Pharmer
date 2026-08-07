@@ -142,12 +142,22 @@ async def run(model: str | None):
     if model:
         os.environ["OLLAMA_MODEL"] = model
 
-    from rag.llm import OLLAMA_MODEL, OLLAMA_BASE_URL, LLM_PROVIDER
+    from rag.llm import LLM_PROVIDER, OLLAMA_MODEL, OPENAI_MODEL, ANTHROPIC_MODEL, GEMINI_MODEL, OLLAMA_BASE_URL
+    
+    model_name = OLLAMA_MODEL
+    if LLM_PROVIDER == "openai":
+        model_name = OPENAI_MODEL
+    elif LLM_PROVIDER == "anthropic":
+        model_name = ANTHROPIC_MODEL
+    elif LLM_PROVIDER == "gemini":
+        model_name = GEMINI_MODEL
+
     print(f"\n{BOLD}PharmaRAG — LLM Isolation Test{RESET}")
     print(f"{'-' * 60}")
     print(f"Provider : {LLM_PROVIDER}")
-    print(f"Model    : {OLLAMA_MODEL}")
-    print(f"Host     : {OLLAMA_BASE_URL}")
+    print(f"Model    : {model_name}")
+    if LLM_PROVIDER == "ollama":
+        print(f"Host     : {OLLAMA_BASE_URL}")
     print(f"Context  : {len(HARDCODED_CHUNKS)} hardcoded Aspirin chunks")
     print(f"{'-' * 60}\n")
 
@@ -209,7 +219,7 @@ async def run(model: str | None):
     # 8. Semantic checks
     print(f"\n{BOLD}Semantic checks:{RESET}")
 
-    moa = drug_info.mechanism_of_action
+    moa = drug_info.pharmacodynamics.mechanism_of_action
     if moa.missing:
         _warn("mechanism_of_action is marked missing — LLM may not have used the context")
     else:
@@ -220,13 +230,13 @@ async def run(model: str | None):
     else:
         _warn("mechanism_of_action has no citations — LLM may not have cited SOURCE_N")
 
-    di = drug_info.drug_interactions
+    di = drug_info.therapeutic_profile.drug_interactions
     if di.missing:
         _pass("drug_interactions.missing == True (correct — not in context)")
     else:
         _warn(f"drug_interactions.missing == False — LLM may have fabricated: {di.content!r}")
 
-    indications = drug_info.indications
+    indications = drug_info.therapeutic_profile.indications
     if indications.missing:
         _warn("indications is marked missing — should be present in context")
     else:
@@ -235,9 +245,11 @@ async def run(model: str | None):
     # 9. Summary
     fields_with_data = sum(
         1 for f in [
-            drug_info.mechanism_of_action, drug_info.indications,
-            drug_info.contraindications, drug_info.adverse_effects,
-            drug_info.drug_interactions,
+            drug_info.pharmacodynamics.mechanism_of_action,
+            drug_info.therapeutic_profile.indications,
+            drug_info.therapeutic_profile.contraindications,
+            drug_info.therapeutic_profile.adverse_effects,
+            drug_info.therapeutic_profile.drug_interactions,
             drug_info.adme.absorption, drug_info.adme.distribution,
             drug_info.adme.metabolism, drug_info.adme.excretion,
         ]
@@ -246,7 +258,7 @@ async def run(model: str | None):
     print(f"\n{BOLD}Summary:{RESET}")
     print(f"  Fields with content : {fields_with_data} / 9")
     print(f"  Drug name generic   : {drug_info.drug_name.generic!r}")
-    print(f"  MoA preview         : {(drug_info.mechanism_of_action.content or '')[:120]!r}")
+    print(f"  MoA preview         : {(drug_info.pharmacodynamics.mechanism_of_action.content or '')[:120]!r}")
     print()
     _pass("LLM test complete — ready for Phase 3 pipeline integration")
     print()

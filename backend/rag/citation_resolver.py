@@ -78,6 +78,30 @@ def resolve_citations(
     return citations
 
 
+def _resolve_field_dict(field: dict | str | None, source_map: dict) -> dict:
+    """Normalise a single FieldValue-like dict, resolving source_ids → sources."""
+    if not isinstance(field, dict):
+        content_str = field if isinstance(field, str) else None
+        return {
+            "content": content_str,
+            "missing": content_str is None,
+            "sources": [],
+        }
+
+    raw_ids = field.pop("source_ids", None)
+    citations = resolve_citations(raw_ids, source_map)
+
+    if citations:
+        field["sources"] = [c.model_dump() for c in citations]
+    elif not field.get("sources"):
+        field["sources"] = []
+
+    if "missing" not in field:
+        field["missing"] = field.get("content") is None
+
+    return field
+
+
 def resolve_field_citations(
     llm_dict: dict,
     source_map: dict[str, dict],
@@ -87,85 +111,80 @@ def resolve_field_citations(
     Walk through an LLM response dict, resolve source_ids → sources for every
     FieldValue-like sub-dict, and remove the internal source_ids key.
 
+    Handles the full nested schema:
+      - top-level FieldValue fields (therapeutic_classes)
+      - pharmacodynamics sub-fields
+      - adme sub-fields
+      - toxicology sub-fields
+      - therapeutic_profile sub-fields
+      - history sub-fields
+      - drug_name
+
     Args:
         llm_dict:   Raw dict from the LLM (may contain source_ids).
         source_map: Built by context_builder.build_context().
-        field_keys: Optional list of top-level keys to process.
-                    Defaults to all FieldValue-like fields in DrugInfo.
+        field_keys: Ignored — kept for backward compatibility only.
 
     Returns:
         Modified dict safe to pass to DrugInfo(**…) for Pydantic validation.
     """
-    if field_keys is None:
-        field_keys = [
-            "mechanism_of_action",
-            "indications",
-            "contraindications",
-            "adverse_effects",
-            "drug_interactions",
-        ]
-
     result = dict(llm_dict)
 
     # 1. Top-level FieldValue fields
-    for key in field_keys:
-        field = result.get(key)
-        if not isinstance(field, dict):
-            # If LLM omitted the field or returned a string/null, default to missing FieldValue
-            content_str = field if isinstance(field, str) else None
-            field = {
-                "content": content_str,
-                "missing": content_str is None,
-                "sources": [],
-            }
-            result[key] = field
-            continue
+    for key in ["therapeutic_classes"]:
+        if key in result:
+            result[key] = _resolve_field_dict(result.get(key), source_map)
 
-        raw_ids = field.pop("source_ids", None)
-        citations = resolve_citations(raw_ids, source_map)
+    # 2. Pharmacodynamics sub-fields
+    pd = result.get("pharmacodynamics")
+    if not isinstance(pd, dict):
+        pd = {}
+    for sub_key in [
+        "mechanism_of_action", "physiologic_effect",
+        "binding_affinity", "selectivity", "potency", "efficacy",
+    ]:
+        pd[sub_key] = _resolve_field_dict(pd.get(sub_key), source_map)
+    result["pharmacodynamics"] = pd
 
-        existing = field.get("sources", [])
-        if citations:
-            field["sources"] = [c.model_dump() for c in citations]
-        elif not existing:
-            field["sources"] = []
-
-        if "missing" not in field:
-            field["missing"] = field.get("content") is None
-
-    # 2. ADME sub-fields
+    # 3. ADME sub-fields
     adme = result.get("adme")
     if not isinstance(adme, dict):
         adme = {}
-
     for sub_key in ["absorption", "distribution", "metabolism", "excretion"]:
-        sub = adme.get(sub_key)
-        if not isinstance(sub, dict):
-            content_str = sub if isinstance(sub, str) else None
-            sub = {
-                "content": content_str,
-                "missing": content_str is None,
-                "sources": [],
-            }
-            adme[sub_key] = sub
-        else:
-            raw_ids = sub.pop("source_ids", None)
-            citations = resolve_citations(raw_ids, source_map)
-            if citations:
-                sub["sources"] = [c.model_dump() for c in citations]
-            elif not sub.get("sources"):
-                sub["sources"] = []
-            if "missing" not in sub:
-                sub["missing"] = sub.get("content") is None
-
+        adme[sub_key] = _resolve_field_dict(adme.get(sub_key), source_map)
     result["adme"] = adme
 
-    # 3. Drug Name
+    # 4. Toxicology sub-fields
+    tox = result.get("toxicology")
+    if not isinstance(tox, dict):
+        tox = {}
+    for sub_key in ["ld50", "toxic_doses", "organ_toxicity", "overdose_management"]:
+        tox[sub_key] = _resolve_field_dict(tox.get(sub_key), source_map)
+    result["toxicology"] = tox
+
+    # 5. Therapeutic profile sub-fields
+    tp = result.get("therapeutic_profile")
+    if not isinstance(tp, dict):
+        tp = {}
+    for sub_key in ["indications", "contraindications", "adverse_effects", "drug_interactions"]:
+        tp[sub_key] = _resolve_field_dict(tp.get(sub_key), source_map)
+    result["therapeutic_profile"] = tp
+
+    # 6. History sub-fields
+    hist = result.get("history")
+    if not isinstance(hist, dict):
+        hist = {}
+    for sub_key in ["background", "discovery", "development", "clinical_trials"]:
+        hist[sub_key] = _resolve_field_dict(hist.get(sub_key), source_map)
+    result["history"] = hist
+
+    # 7. Drug Name
     dn = result.get("drug_name")
     if isinstance(dn, str):
         result["drug_name"] = {
             "generic": dn,
             "brand_names": [],
+            "lab_codes": [],
             "sources": [],
         }
     elif isinstance(dn, dict):
@@ -177,12 +196,15 @@ def resolve_field_citations(
             dn["sources"] = []
         if dn.get("brand_names") is None:
             dn["brand_names"] = []
+        if dn.get("lab_codes") is None:
+            dn["lab_codes"] = []
         if not dn.get("generic"):
             dn["generic"] = "Unknown"
     else:
         result["drug_name"] = {
             "generic": "Unknown",
             "brand_names": [],
+            "lab_codes": [],
             "sources": [],
         }
 

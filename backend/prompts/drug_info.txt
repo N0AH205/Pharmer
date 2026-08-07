@@ -34,23 +34,134 @@ Full schema:
   "drug_name": {
     "generic": "<string>",
     "brand_names": ["<string>"],
+    "lab_codes": ["<string — research codes or chemical aliases, e.g. BAY-09867>"],
     "source_ids": ["SOURCE_N"]
   },
-  "mechanism_of_action": {
-    "content": "<string|null>",
+  "therapeutic_classes": {
+    "content": "<Broad clinical category (e.g. NSAID, SSRI, Antihypertensive) and pharmacological classification>",
     "missing": false,
     "source_ids": ["SOURCE_N"]
   },
-  "adme": {
-    "absorption":   { "content": "<string|null>", "missing": false, "source_ids": [] },
-    "distribution": { "content": "<string|null>", "missing": false, "source_ids": [] },
-    "metabolism":   { "content": "<string|null>", "missing": false, "source_ids": [] },
-    "excretion":    { "content": "<string|null>", "missing": false, "source_ids": [] }
+  "pharmacodynamics": {
+    "mechanism_of_action": {
+      "content": "<Step-by-step biological cascade: target binding → enzyme inhibition → pathway alteration → physiological result>",
+      "missing": false,
+      "source_ids": []
+    },
+    "physiologic_effect": {
+      "content": "<Direct functional and systemic changes caused by the drug in cells, tissues, or organ systems>",
+      "missing": false,
+      "source_ids": []
+    },
+    "binding_affinity": {
+      "content": "<Quantitative binding strength: Kd or Ki values with units and target name>",
+      "missing": false,
+      "source_ids": []
+    },
+    "selectivity": {
+      "content": "<Relative affinity for primary therapeutic target vs. off-target receptors or enzyme subtypes>",
+      "missing": false,
+      "source_ids": []
+    },
+    "potency": {
+      "content": "<EC50 or ED50 values with units indicating dose required for specific response intensity>",
+      "missing": false,
+      "source_ids": []
+    },
+    "efficacy": {
+      "content": "<Maximum physiological effect Emax achievable by the drug regardless of dose>",
+      "missing": false,
+      "source_ids": []
+    }
   },
-  "indications":       { "content": "<string|null>", "missing": false, "source_ids": [] },
-  "contraindications": { "content": "<string|null>", "missing": false, "source_ids": [] },
-  "adverse_effects":   { "content": "<string|null>", "missing": false, "source_ids": [] },
-  "drug_interactions": { "content": "<string|null>", "missing": false, "source_ids": [] }
+  "adme": {
+    "absorption": {
+      "content": "<Oral bioavailability F%, Tmax, primary absorption sites, absorption mechanisms>",
+      "missing": false,
+      "source_ids": []
+    },
+    "distribution": {
+      "content": "<Volume of distribution Vd, plasma protein binding %, blood-brain barrier penetration, tissue distribution>",
+      "missing": false,
+      "source_ids": []
+    },
+    "metabolism": {
+      "content": "<Primary organs (liver), CYP450 isoforms involved, active/inactive metabolites, biotransformation pathways>",
+      "missing": false,
+      "source_ids": []
+    },
+    "excretion": {
+      "content": "<Elimination pathways (renal, biliary, fecal), clearance CL, elimination half-life t1/2>",
+      "missing": false,
+      "source_ids": []
+    }
+  },
+  "toxicology": {
+    "ld50": {
+      "content": "<LD50 values in animal models with species and route of administration>",
+      "missing": false,
+      "source_ids": []
+    },
+    "toxic_doses": {
+      "content": "<Clinical toxic thresholds and overdose doses in humans>",
+      "missing": false,
+      "source_ids": []
+    },
+    "organ_toxicity": {
+      "content": "<Target organs for toxicity: e.g. hepatotoxic, nephrotoxic, cardiotoxic — mechanism and severity>",
+      "missing": false,
+      "source_ids": []
+    },
+    "overdose_management": {
+      "content": "<Antidotes, supportive care measures, clinical management of overdose>",
+      "missing": false,
+      "source_ids": []
+    }
+  },
+  "therapeutic_profile": {
+    "indications": {
+      "content": "<Approved clinical uses and key off-label conditions>",
+      "missing": false,
+      "source_ids": []
+    },
+    "contraindications": {
+      "content": "<Absolute and relative contraindications: medical conditions, patient populations, or states where drug is unsafe>",
+      "missing": false,
+      "source_ids": []
+    },
+    "adverse_effects": {
+      "content": "<Undesirable side effects by frequency (common, rare) and severity (mild, life-threatening)>",
+      "missing": false,
+      "source_ids": []
+    },
+    "drug_interactions": {
+      "content": "<Drug-drug, drug-food, drug-disease interactions with mechanism and management strategies>",
+      "missing": false,
+      "source_ids": []
+    }
+  },
+  "history": {
+    "background": {
+      "content": "<Medical context, historical unmet needs, rationale for target identification, key figures>",
+      "missing": false,
+      "source_ids": []
+    },
+    "discovery": {
+      "content": "<Origin of initial lead compound: natural source isolation, HTS, in silico design, serendipitous discovery, etc.>",
+      "missing": false,
+      "source_ids": []
+    },
+    "development": {
+      "content": "<Chemical structure optimization, preclinical animal testing, formulation engineering, patent history>",
+      "missing": false,
+      "source_ids": []
+    },
+    "clinical_trials": {
+      "content": "<Chronological Phase I–III progression, key safety/efficacy endpoints, regulatory approval milestones>",
+      "missing": false,
+      "source_ids": []
+    }
+  }
 }
 ```
 

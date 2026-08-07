@@ -35,9 +35,9 @@ export default function ChatInterface({ messages, loading }: Props) {
         </div>
         <h2 className={styles.emptyTitle}>Enter a SMILES string to begin</h2>
         <p className={styles.emptyDesc}>
-          Submit any valid SMILES notation to retrieve structured pharmacological
-          information — Mechanism of Action, ADME, Chemical Structure, Indications,
-          Contraindications, Adverse Effects, and Drug Interactions.
+          Submit any valid SMILES notation to retrieve a detailed pharmacological
+          breakdown — Overview, Pharmacodynamics, Pharmacokinetics (ADME),
+          Safety &amp; Toxicology, and Drug History.
         </p>
         <div className={styles.emptyHints}>
           <span className={styles.hint}>

@@ -24,6 +24,8 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 
 
 async def generate_structured_output(
@@ -48,6 +50,8 @@ async def generate_structured_output(
         return await _call_openai(system_prompt, user_message, output_schema)
     elif LLM_PROVIDER == "anthropic":
         return await _call_anthropic(system_prompt, user_message, output_schema)
+    elif LLM_PROVIDER == "gemini":
+        return await _call_gemini(system_prompt, user_message, output_schema)
     else:
         raise ValueError(f"Unknown LLM_PROVIDER: {LLM_PROVIDER!r}")
 
@@ -76,7 +80,8 @@ async def _call_ollama(
         format="json",
         options={
             "temperature": 0.1,
-            "num_predict": 4096,
+            "num_predict": 8192,  # Expanded schema needs ~6-8k tokens
+            "num_ctx": 16384,     # Ensure context window fits prompt + output
         },
     )
 
@@ -150,3 +155,59 @@ async def _call_anthropic(
         return json.loads(raw)
     except json.JSONDecodeError as exc:
         raise ValueError(f"Anthropic returned invalid JSON: {exc}") from exc
+
+
+# ── Google Gemini (optional) ──────────────────────────────────────────────────
+
+async def _call_gemini(
+    system_prompt: str,
+    user_message: str,
+    schema: type[BaseModel],
+) -> dict:
+    """
+    Call Google Gemini API with JSON mode.
+    Requires: httpx  and  GEMINI_API_KEY env var.
+    """
+    import httpx
+
+    if not GEMINI_API_KEY:
+        raise ValueError("GEMINI_API_KEY environment variable is not set.")
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+
+    payload = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {"text": user_message}
+                ]
+            }
+        ],
+        "systemInstruction": {
+            "parts": [
+                {"text": system_prompt}
+            ]
+        },
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "temperature": 0.1,
+        }
+    }
+
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        resp = await client.post(url, json=payload)
+        resp.raise_for_status()
+        data = resp.json()
+
+    try:
+        raw = data["candidates"][0]["content"]["parts"][0]["text"]
+    except (KeyError, IndexError) as exc:
+        raise ValueError(f"Gemini API returned unexpected response format: {data}") from exc
+
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"Gemini returned invalid JSON: {exc}\nRaw output (first 500 chars):\n{raw[:500]}"
+        ) from exc

@@ -11,10 +11,17 @@ alongside the normal DrugInfo — without polluting the public API schema.
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
-from rag.schema import DrugInfo, ChemicalStructure, Citation
+from pydantic import ValidationError
+
+from rag.schema import (
+    DrugInfo, DrugName, ChemicalStructure, Citation,
+    FieldValue, ADMEFields, PharmacodynamicsFields,
+    ToxicologyFields, TherapeuticProfile, HistoryFields,
+)
 from rag.retriever import get_retriever
 from rag.context_builder import build_context
 from rag.citation_resolver import resolve_field_citations
@@ -24,8 +31,9 @@ from ingest.pubchem import enrich_structure
 
 PROMPT_TEMPLATE = Path(__file__).parent.parent / "prompts" / "drug_info.txt"
 
-# Fallback mock — used ONLY when retriever is empty (Phase 1 compatibility)
-_MOCK_ASPIRIN_PATH = Path(__file__).parent / "_mock_aspirin.json"
+logger = logging.getLogger(__name__)
+
+_MISSING = FieldValue(content=None, missing=True)
 
 
 async def run_pipeline(
@@ -117,11 +125,9 @@ async def run_pipeline(
     # ── 8. Inject trusted PubChem structure (never from LLM) ─────────────
     raw_dict["chemical_structure"] = {
         **structure_data,
-        # Remove non-schema fields before Pydantic validation
         "common_name": None,
         "synonyms": None,
     }
-    # Drop keys that don't exist in ChemicalStructure
     chem_keys = ChemicalStructure.model_fields.keys()
     raw_dict["chemical_structure"] = {
         k: v for k, v in raw_dict["chemical_structure"].items()
@@ -129,8 +135,65 @@ async def run_pipeline(
     }
     raw_dict["query_smiles"] = smiles
 
-    # ── 9. Pydantic validation ────────────────────────────────────────────
-    drug_info = DrugInfo(**raw_dict)
+    # ── 9. Pydantic validation — graceful degradation on LLM misformat ────
+    try:
+        drug_info = DrugInfo(**raw_dict)
+    except (ValidationError, Exception) as exc:
+        logger.error(
+            "Pydantic validation failed for SMILES %r — returning safe fallback. Error: %s",
+            smiles, exc,
+        )
+        # Build a structurally valid DrugInfo where all LLM fields are missing.
+        # The user sees 'Data unavailable' rather than a 500 error.
+        drug_info = DrugInfo(
+            query_smiles=smiles,
+            drug_name=DrugName(
+                generic=structure_data.get("common_name") or structure_data.get("iupac_name") or smiles,
+                brand_names=[],
+                lab_codes=[],
+                sources=[],
+            ),
+            chemical_structure=ChemicalStructure(
+                **{k: v for k, v in {
+                    **structure_data,
+                    "common_name": None,
+                    "synonyms": None,
+                }.items() if k in ChemicalStructure.model_fields}
+            ),
+            therapeutic_classes=_MISSING,
+            pharmacodynamics=PharmacodynamicsFields(
+                mechanism_of_action=_MISSING,
+                physiologic_effect=_MISSING,
+                binding_affinity=_MISSING,
+                selectivity=_MISSING,
+                potency=_MISSING,
+                efficacy=_MISSING,
+            ),
+            adme=ADMEFields(
+                absorption=_MISSING,
+                distribution=_MISSING,
+                metabolism=_MISSING,
+                excretion=_MISSING,
+            ),
+            toxicology=ToxicologyFields(
+                ld50=_MISSING,
+                toxic_doses=_MISSING,
+                organ_toxicity=_MISSING,
+                overdose_management=_MISSING,
+            ),
+            therapeutic_profile=TherapeuticProfile(
+                indications=_MISSING,
+                contraindications=_MISSING,
+                adverse_effects=_MISSING,
+                drug_interactions=_MISSING,
+            ),
+            history=HistoryFields(
+                background=_MISSING,
+                discovery=_MISSING,
+                development=_MISSING,
+                clinical_trials=_MISSING,
+            ),
+        )
 
     if debug:
         return {

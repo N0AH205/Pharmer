@@ -1,0 +1,235 @@
+{
+  "aspirin": {
+    "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+    "generic": "aspirin",
+    "mechanism_of_action": [
+      "inhibits",
+      "cyclooxygenase",
+      "COX-1",
+      "COX-2",
+      "acetylation",
+      "thromboxane A2",
+      "prostaglandin"
+    ],
+    "indications": [
+      "pain",
+      "fever",
+      "arthritis",
+      "inflammation",
+      "myocardial infarction",
+      "stroke",
+      "cardiovascular",
+      "prophylaxis"
+    ],
+    "adme": {
+      "absorption": [
+        "rapidly absorbed",
+        "bioavailability",
+        "Tmax"
+      ],
+      "distribution": [
+        "distribution",
+        "protein binding",
+        "albumin"
+      ],
+      "metabolism": [
+        "hydrolyzed",
+        "salicylate",
+        "salicylic acid",
+        "liver"
+      ],
+      "excretion": [
+        "renal",
+        "excreted",
+        "half-life",
+        "urine"
+      ]
+    },
+    "contraindications": [
+      "hypersensitivity",
+      "bleeding",
+      "Reye's syndrome",
+      "peptic ulcer",
+      "pregnancy"
+    ]
+  },
+  "ibuprofen": {
+    "smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)O",
+    "generic": "ibuprofen",
+    "mechanism_of_action": [
+      "inhibits",
+      "cyclooxygenase",
+      "COX-1",
+      "COX-2",
+      "prostaglandin"
+    ],
+    "indications": [
+      "pain",
+      "fever",
+      "arthritis",
+      "inflammation",
+      "dysmenorrhea"
+    ],
+    "adme": {
+      "absorption": [
+        "rapidly absorbed",
+        "bioavailability",
+        "Tmax"
+      ],
+      "distribution": [
+        "protein binding"
+      ],
+      "metabolism": [
+        "metabolized",
+        "CYP2C9",
+        "oxidation"
+      ],
+      "excretion": [
+        "excreted",
+        "half-life",
+        "urine"
+      ]
+    },
+    "contraindications": [
+      "hypersensitivity",
+      "asthma",
+      "urticaria",
+      "bleeding",
+      "renal impairment"
+    ]
+  },
+  "metformin": {
+    "smiles": "CN(C)C(=N)NC(N)=N",
+    "generic": "metformin",
+    "mechanism_of_action": [
+      "hepatic glucose production",
+      "gluconeogenesis",
+      "insulin sensitivity",
+      "AMPK"
+    ],
+    "indications": [
+      "type 2 diabetes",
+      "diabetes mellitus",
+      "glycemic control"
+    ],
+    "adme": {
+      "absorption": [
+        "slowly absorbed",
+        "bioavailability",
+        "Tmax",
+        "food"
+      ],
+      "distribution": [
+        "protein binding negligible",
+        "not bound"
+      ],
+      "metabolism": [
+        "not metabolized",
+        "unchanged"
+      ],
+      "excretion": [
+        "renal",
+        "excreted",
+        "half-life",
+        "tubular secretion"
+      ]
+    },
+    "contraindications": [
+      "renal impairment",
+      "acidosis",
+      "lactic acidosis",
+      "hypersensitivity"
+    ]
+  },
+  "atorvastatin": {
+    "smiles": "CC(C)c1c(C(=O)Nc2ccccc2F)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O",
+    "generic": "atorvastatin",
+    "mechanism_of_action": [
+      "inhibits",
+      "HMG-CoA reductase",
+      "cholesterol biosynthesis",
+      "mevalonate"
+    ],
+    "indications": [
+      "hypercholesterolemia",
+      "hyperlipidemia",
+      "cardiovascular disease",
+      "cholesterol",
+      "reduction"
+    ],
+    "adme": {
+      "absorption": [
+        "absorbed",
+        "bioavailability",
+        "Tmax"
+      ],
+      "distribution": [
+        "protein binding",
+        "highly bound"
+      ],
+      "metabolism": [
+        "CYP3A4",
+        "metabolites",
+        "active"
+      ],
+      "excretion": [
+        "excreted",
+        "bile",
+        "feces",
+        "half-life"
+      ]
+    },
+    "contraindications": [
+      "liver disease",
+      "pregnancy",
+      "lactation",
+      "hypersensitivity"
+    ]
+  },
+  "caffeine": {
+    "smiles": "Cn1cnc2c1c(=O)n(c(=O)n2C)C",
+    "generic": "caffeine",
+    "mechanism_of_action": [
+      "adenosine receptor",
+      "antagonist",
+      "block",
+      "A1",
+      "A2A"
+    ],
+    "indications": [
+      "fatigue",
+      "drowsiness",
+      "headache",
+      "migraine",
+      "apnea"
+    ],
+    "adme": {
+      "absorption": [
+        "absorbed",
+        "bioavailability",
+        "Tmax"
+      ],
+      "distribution": [
+        "blood-brain barrier",
+        "crosses",
+        "placenta"
+      ],
+      "metabolism": [
+        "CYP1A2",
+        "demethylation",
+        "metabolized"
+      ],
+      "excretion": [
+        "excreted",
+        "urine",
+        "half-life"
+      ]
+    },
+    "contraindications": [
+      "hypersensitivity",
+      "cardiac arrhythmias",
+      "anxiety",
+      "peptic ulcer"
+    ]
+  }
+}

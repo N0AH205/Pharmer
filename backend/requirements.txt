@@ -1,9 +1,9 @@
-fastapi==0.111.0
-uvicorn[standard]==0.30.1
-httpx==0.27.1
-pydantic==2.7.4
-pydantic-settings==2.3.4
-python-dotenv==1.0.1
+fastapi>=0.111.0,<0.120.0
+uvicorn[standard]>=0.30.1
+httpx>=0.27.0
+pydantic>=2.9.0,<3.0.0
+pydantic-settings>=2.4.0
+python-dotenv>=1.0.1
 
 # Vector DB (Phase 2)
 chromadb>=0.5.3

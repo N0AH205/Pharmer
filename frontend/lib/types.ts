@@ -17,12 +17,7 @@ export interface FieldValue {
   missing: boolean;
 }
 
-export interface ADMEFields {
-  absorption: FieldValue;
-  distribution: FieldValue;
-  metabolism: FieldValue;
-  excretion: FieldValue;
-}
+// ── Overview ──────────────────────────────────────────────────────────────────
 
 export interface ChemicalStructure {
   smiles: string;
@@ -35,19 +30,69 @@ export interface ChemicalStructure {
   sources: Citation[];
 }
 
-export interface DrugInfo {
-  drug_name: {
-    generic: string;
-    brand_names: string[];
-    sources: Citation[];
-  };
-  mechanism_of_action: FieldValue;
-  adme: ADMEFields;
-  chemical_structure: ChemicalStructure;
+// ── Pharmacodynamics ──────────────────────────────────────────────────────────
+
+export interface PharmacodynamicsFields {
+  mechanism_of_action: FieldValue;   // Step-by-step cascade
+  physiologic_effect: FieldValue;    // Functional/systemic changes
+  binding_affinity: FieldValue;      // Kd / Ki values
+  selectivity: FieldValue;           // Primary vs off-target
+  potency: FieldValue;               // EC50 / ED50
+  efficacy: FieldValue;              // Emax
+}
+
+// ── Pharmacokinetics (ADME) ───────────────────────────────────────────────────
+
+export interface ADMEFields {
+  absorption: FieldValue;    // Bioavailability, Tmax, absorption sites
+  distribution: FieldValue;  // Vd, protein binding, BBB
+  metabolism: FieldValue;    // CYP450, metabolites
+  excretion: FieldValue;     // CL, t1/2, elimination
+}
+
+// ── Toxicology ────────────────────────────────────────────────────────────────
+
+export interface ToxicologyFields {
+  ld50: FieldValue;
+  toxic_doses: FieldValue;
+  organ_toxicity: FieldValue;
+  overdose_management: FieldValue;
+}
+
+// ── Therapeutic Profile ───────────────────────────────────────────────────────
+
+export interface TherapeuticProfile {
   indications: FieldValue;
   contraindications: FieldValue;
   adverse_effects: FieldValue;
   drug_interactions: FieldValue;
+}
+
+// ── History ───────────────────────────────────────────────────────────────────
+
+export interface HistoryFields {
+  background: FieldValue;
+  discovery: FieldValue;
+  development: FieldValue;
+  clinical_trials: FieldValue;
+}
+
+// ── Root ──────────────────────────────────────────────────────────────────────
+
+export interface DrugInfo {
+  drug_name: {
+    generic: string;
+    brand_names: string[];
+    lab_codes: string[];
+    sources: Citation[];
+  };
+  therapeutic_classes: FieldValue;
+  chemical_structure: ChemicalStructure;
+  pharmacodynamics: PharmacodynamicsFields;
+  adme: ADMEFields;
+  toxicology: ToxicologyFields;
+  therapeutic_profile: TherapeuticProfile;
+  history: HistoryFields;
   disclaimer: string;
   query_smiles: string;
   generated_at: string;

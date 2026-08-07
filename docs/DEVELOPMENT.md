@@ -1,7 +1,7 @@
 # PharmaRAG — Developer Documentation
 
 > **Scope**: Tech stack rationale + complete guides for Phase 2 (Knowledge Base) and Phase 3 (RAG Pipeline).  
-> This document is the single source of truth for continuing development after Phase 1.
+> This document is the single source of truth for continuing development, reflecting the current active LLM configuration using the Google Gemini API.
 
 ---
 
@@ -12,9 +12,9 @@
    - [Frontend: Next.js 15](#21-frontend-nextjs-15)
    - [Styling: Vanilla CSS + CSS Modules](#22-styling-vanilla-css--css-modules)
    - [Backend: Python FastAPI](#23-backend-python-fastapi)
-   - [LLM: Qwen via Ollama (provider-agnostic)](#24-llm-qwen-via-ollama)
+   - [LLM: Google Gemini (provider-switchable)](#24-llm-google-gemini)
    - [Vector Database: ChromaDB](#25-vector-database-chromadb)
-   - [Embeddings](#26-embeddings)
+   - [Embeddings: Local nomic-embed-text via Ollama](#26-embeddings)
    - [Data Sources: PubChem, DailyMed, PubMed](#27-data-sources)
    - [Schema Enforcement: Pydantic](#28-schema-enforcement-pydantic)
 3. [Architecture Deep-Dive](#3-architecture-deep-dive)
@@ -38,16 +38,14 @@ User SMILES query
       |
 [ Retriever: ChromaDB ]  <-- pharmaceutical text chunks (DailyMed, PubMed, PubChem)
       | relevant chunks
-[ LLM: Qwen (Ollama) ]  <-- system prompt: "fill schema, cite sources, never fabricate"
-      | structured JSON
+[ LLM: Google Gemini ]   <-- system prompt: "fill schema, cite sources, never fabricate"
+      | structured JSON (application/json)
 [ Pydantic schema validation ]
       |
 [ Frontend: DrugInfoCard ]  <-- tabbed UI with citations and missing-data flags
 ```
 
-**Key principle**: The LLM never answers from its training knowledge. It only summarises
-text chunks retrieved from curated pharmaceutical databases. Every claim is cited.
-Missing data is flagged explicitly — never fabricated.
+**Key principle**: The LLM never answers from its training knowledge. It only summarises text chunks retrieved from curated pharmaceutical databases. Every claim is cited. Missing data is flagged explicitly — never fabricated.
 
 ---
 
@@ -67,18 +65,17 @@ Missing data is flagged explicitly — never fabricated.
 | SEO / meta tags | Manual | `export const metadata` in `layout.tsx` |
 
 **Why the API Route pattern matters:**
-The frontend never calls the Python backend directly — it calls `/api/query`, a Next.js server function.
-This means:
-- The Python backend URL is never exposed to the browser
-- Adding auth (API key, session) later happens in one place
-- Phase 1 (mock) runs without the Python server at all
+The frontend never calls the Python backend directly — it calls `/api/query`, a Next.js server function. This means:
+- The Python backend URL is never exposed to the browser.
+- Adding authentication or rate-limiting later happens in one centralized location.
+- Phase 1 (mock) runs without needing the Python server running at all.
 
 **Key files:**
 ```
 frontend/app/
 ├── layout.tsx           <- Root HTML, SEO metadata
 ├── page.tsx             <- Main UI
-├── globals.css          <- Design system
+├── globals.css          <- Design system styling
 └── api/query/route.ts   <- The bridge between browser and Python backend
 ```
 
@@ -89,10 +86,8 @@ frontend/app/
 **What it is**: Plain CSS with scoped CSS Modules (`.module.css` per component). No Tailwind, no styled-components.
 
 **Why?**
-- **CSS Modules** give component-level scoping with zero runtime overhead. Class names like `.header`
-  in `DrugInfoCard.module.css` cannot clash with `.header` in `SMILESInput.module.css`.
-- **Design tokens** in `globals.css` (CSS custom properties like `--accent-primary`, `--bg-surface`)
-  create a consistent system without a framework dependency.
+- **CSS Modules** give component-level scoping with zero runtime overhead. Class names like `.header` in `DrugInfoCard.module.css` cannot clash with `.header` in `SMILESInput.module.css`.
+- **Design tokens** in `globals.css` (CSS custom properties like `--accent-primary`, `--bg-surface`) create a consistent system without a framework dependency.
 - **Full control** over animations, glassmorphism, and grid backgrounds that are awkward in utility classes.
 
 **Token system in `globals.css`:**
@@ -124,10 +119,10 @@ To change the entire colour scheme: edit ~10 lines in `globals.css`. Every compo
 | Scientific / ML ecosystem | Limited | NumPy, HuggingFace — Python-first |
 
 **Why FastAPI over Flask or Django?**
-- **Async by default** — critical for concurrent LLM API calls without blocking other requests
-- **Pydantic integration** — request/response schemas automatically validated and serialised
-- **Auto-generated docs** — visit `http://localhost:8000/docs` to test endpoints interactively
-- **Minimal boilerplate** — a full RAG endpoint is ~20 lines
+- **Async by default** — critical for concurrent LLM API calls without blocking other requests.
+- **Pydantic integration** — request/response schemas automatically validated and serialised.
+- **Auto-generated docs** — visit `http://localhost:8000/docs` to test endpoints interactively.
+- **Minimal boilerplate** — a full RAG endpoint is ~20 lines.
 
 **Key files:**
 ```
@@ -137,49 +132,46 @@ backend/
 │   ├── schema.py         <- Pydantic models (DrugInfo, FieldValue, etc.)
 │   ├── pipeline.py       <- Orchestrates retrieval -> LLM -> validation
 │   ├── retriever.py      <- ChromaDB vector search
-│   └── llm.py            <- LLM provider client (Ollama/OpenAI/Anthropic)
+│   ├── context_builder.py<- Formats retrieved text for the LLM context
+│   └── llm.py            <- LLM provider client (Gemini/Ollama/OpenAI/Anthropic)
 └── ingest/
     ├── pubchem.py        <- Live PubChem REST API
-    ├── dailymed.py       <- Phase 2 stub
-    └── pubmed.py         <- Phase 2 stub
+    ├── dailymed.py       <- Ingests FDA DailyMed labels
+    ├── pubmed.py         <- Ingests PubMed abstracts
+    └── run_ingest.py     <- Main ingestion orchestration script
 ```
 
 ---
 
-### 2.4 LLM: Qwen via Ollama
+### 2.4 LLM: Google Gemini
 
-**What it is**: Qwen is Alibaba's open-source LLM family. Ollama is a local LLM runtime — think Docker, but for language models.
+**What it is**: Google's family of highly capable language models, accessed via the Gemini API using an API key.
 
-**Why Qwen?**
-- **Free** — no API cost, no per-token billing
-- **Local** — data never leaves your machine (important for pharmaceutical content)
-- **Capable** — Qwen2.5-72B scores competitively with GPT-4o on structured reasoning tasks
-- **JSON mode** — Ollama supports `"format": "json"` parameter for structured output
-- **Switchable** — the `llm.py` provider pattern means you can swap to OpenAI/Anthropic with
-  one environment variable change if Qwen underperforms on a specific task
+**Why Google Gemini?**
+- **Extremely Capable**: High reasoning performance for structured tasks like RAG, even with compact models like `gemini-3.5-flash-lite` or `gemini-1.5-flash`.
+- **Native Structured JSON Mode**: Native support for schema enforcement (`responseMimeType: "application/json"`) ensures output matches our Pydantic schema perfectly.
+- **Low Latency & Cost-Effective**: Quick response generation, and cost-effective API rates with generous free/low-cost tiers.
+- **No Heavy SDKs**: We query the Gemini API directly using Python's `httpx` library, making the codebase lightweight and dependencies minimal.
+- **Switchable**: The `llm.py` provider pattern allows switching to other providers (Ollama, OpenAI, Anthropic) simply by changing environment variables.
 
-**Qwen model selection guide:**
+**Gemini Model Guide:**
+Our primary recommended models for development and production are:
+- `gemini-3.5-flash-lite`: Recommended for fast, low-cost structured RAG responses.
+- `gemini-1.5-flash`: Highly optimized general-purpose model.
+- `gemini-1.5-pro`: Deepest reasoning capabilities, useful for complex biomedical synthesis.
 
-| Model | VRAM needed | Use case |
-|---|---|---|
-| `qwen2.5:7b` | ~6 GB | Development / testing on consumer GPU |
-| `qwen2.5:14b` | ~10 GB | Better quality, still fast |
-| `qwen2.5:72b` | ~48 GB | Full quality |
-| `qwen2.5:72b-instruct-q4_K_M` | ~24 GB | Recommended for 24 GB GPU |
-
-**Provider switching** — in `backend/rag/llm.py`:
+**Provider switching configuration** — in `backend/rag/llm.py`:
 ```python
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")
-# Dispatches to _call_ollama() / _call_openai() / _call_anthropic()
-# Change one line in backend/.env to switch the entire LLM backend
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini")
+# Dispatches to _call_gemini() / _call_ollama() / _call_openai() / _call_anthropic()
+# Change LLM_PROVIDER in backend/.env to switch LLM backends
 ```
 
 ---
 
 ### 2.5 Vector Database: ChromaDB
 
-**What it is**: Open-source, embeddable vector database. Stores text chunks as numerical vectors
-(embeddings) and retrieves the most semantically similar ones given a query.
+**What it is**: Open-source, embeddable vector database. Stores text chunks as numerical vectors (embeddings) and retrieves the most semantically similar ones given a query.
 
 **Why ChromaDB over alternatives?**
 
@@ -191,42 +183,33 @@ LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")
 | pgvector | Requires PostgreSQL; overkill for this scale |
 | **ChromaDB** (chosen) | Pure Python, runs in-process, persists to disk, free, metadata filtering |
 
-**How it works in this project:**
-```
-Ingestion (Phase 2):
-  Drug text chunk -> embedding model -> 1536-dim vector -> stored in ChromaDB
+**How it works in this project (Two-Stage Retrieval):**
+1. **Stage 1 (Metadata Filter)**: Filter by `pubchem_cid` to ensure only text chunks corresponding to the queried chemical structure are searched. This guarantees 100% drug identity correctness.
+2. **Stage 2 (Vector Similarity)**: Rank the filtered subset by cosine similarity against the query embedding.
 
-Retrieval (Phase 3):
-  Drug name query -> embed -> cosine similarity search -> top-8 chunks returned
-```
-
-ChromaDB persists to `data/chroma/` — this folder is gitignored. Each developer builds
-their own local knowledge base from the same public source APIs.
+ChromaDB persists to `data/chroma/` (gitignored). Each developer builds their own local knowledge base using the ingestion scripts.
 
 ---
 
-### 2.6 Embeddings
+### 2.6 Embeddings: Local nomic-embed-text via Ollama
 
-**What it is**: Converting text to a high-dimensional vector so semantically similar texts are
-geometrically close in vector space.
+**What it is**: Converting text to a high-dimensional vector so semantically similar texts are geometrically close in vector space.
 
-**Recommended: `text-embedding-3-small` (OpenAI)**
+**Default Configuration: Local `nomic-embed-text` via Ollama**
+We use local embeddings by default to ensure no API costs are incurred during search and ingestion.
 
-| Option | Dimensions | Cost | Notes |
-|---|---|---|---|
-| `text-embedding-3-small` | 1536 | $0.02/1M tokens | Very cheap; excellent for RAG |
-| `text-embedding-3-large` | 3072 | $0.13/1M tokens | Better quality |
-| `nomic-embed-text` (Ollama) | 768 | Free | Fully local; slightly lower quality |
-| `mxbai-embed-large` (Ollama) | 1024 | Free | Good local alternative |
+| Option | Dimensions | Provider | Cost | Notes |
+|---|---|---|---|---|
+| `nomic-embed-text` | 768 | Ollama | Free | Fast, local, and reliable. Used by default. |
+| `text-embedding-3-small` | 1536 | OpenAI | $0.02/1M tokens | High quality, requires OpenAI API key. |
+| `text-embedding-3-large` | 3072 | OpenAI | $0.13/1M tokens | Deepest semantic quality. |
 
-**For fully offline operation (no OpenAI key):**
+**For fully offline embedding generation:**
+Ensure Ollama is running and run:
 ```bash
 ollama pull nomic-embed-text
 ```
-Set `EMBEDDING_PROVIDER=ollama` in `backend/.env` (Phase 2 adds this config).
-
-The pharmaceutical corpus for Phase 2 benchmark set (5-10 drugs) is not large — total embedding
-cost with OpenAI is < $0.01.
+Configure `EMBED_MODEL=nomic-embed-text` in `backend/.env`.
 
 ---
 
@@ -235,9 +218,7 @@ cost with OpenAI is < $0.01.
 #### PubChem — Active (Phase 1+)
 - **URL**: https://pubchem.ncbi.nlm.nih.gov
 - **Auth**: None required. Rate limit: 5 requests/second.
-- **Scale**: 120M+ compounds.
-- **Used for**: SMILES -> CID resolution, structure images, IUPAC name, molecular formula/weight,
-  InChI, pharmacology text summaries.
+- **Used for**: SMILES -> CID resolution, structure images, IUPAC name, molecular formula/weight, InChI, pharmacology text summaries.
 - **Key API endpoints:**
   ```
   GET /compound/smiles/{smiles}/property/{fields}/JSON  -> compound properties
@@ -248,10 +229,7 @@ cost with OpenAI is < $0.01.
 #### DailyMed / FDA — Phase 2
 - **URL**: https://dailymed.nlm.nih.gov
 - **Auth**: None required.
-- **Scale**: 150k+ FDA-approved drug labels (Structured Product Labeling format).
-- **Used for**: Indications, contraindications, adverse effects, drug interactions, clinical
-  pharmacology (ADME). These are the legally authoritative descriptions — primary source for
-  all clinical fields.
+- **Used for**: Indications, contraindications, adverse effects, drug interactions, clinical pharmacology (ADME). Legally authoritative descriptions — primary source for all clinical fields.
 - **Key API endpoints:**
   ```
   GET /services/v2/spls.json?drug_name={name}   -> search labels by drug name
@@ -260,21 +238,13 @@ cost with OpenAI is < $0.01.
 
 #### PubMed — Phase 2
 - **URL**: https://pubmed.ncbi.nlm.nih.gov
-- **Auth**: Optional NCBI API key raises rate limit from 3 to 10 req/s (free registration).
-- **Scale**: 38M+ citations with abstracts.
-- **Used for**: Mechanistic detail for MoA, pharmacokinetic studies for ADME, research-level
-  drug interaction data — enriches what FDA labels provide.
+- **Auth**: Optional NCBI API key raises rate limit from 3 to 10 req/s.
+- **Used for**: Mechanistic detail for MoA, pharmacokinetic studies for ADME, research-level drug interaction data — enriches what FDA labels provide.
 - **Key API endpoints (NCBI E-utilities):**
   ```
   GET /esearch.fcgi?db=pubmed&term={query}&retmax=N   -> search, returns PMIDs
   GET /efetch.fcgi?db=pubmed&id={pmids}&retmode=xml   -> fetch abstracts as XML
   ```
-
-#### DrugBank — Requires License
-- **URL**: https://www.drugbank.ca
-- **Auth**: Free academic license available; commercial use is paid.
-- **Used for**: Highly structured MoA, complete ADME data, comprehensive drug interaction database.
-- **Status**: Stub in place. Integrate when license is confirmed.
 
 ---
 
@@ -283,15 +253,9 @@ cost with OpenAI is < $0.01.
 **What it is**: Python data validation library. Defines the `DrugInfo` model every LLM response must conform to.
 
 **Why schema enforcement matters:**
-Without it, the LLM might:
-- Return a response missing the `drug_interactions` key — frontend crash
-- Invent plausible-sounding but false ADME data — silent hallucination
-- Return a number as a string — subtle type bugs
-
-With Pydantic, every LLM response is validated before the API returns:
+Without it, the LLM might return responses with missing keys or fabricated data. Pydantic validates the structure of the Gemini output before it is returned:
 ```python
-# If LLM returns malformed JSON -> Pydantic raises ValidationError -> API returns 500
-# The frontend never receives invalid data
+# If LLM returns malformed JSON -> Pydantic raises ValidationError -> API triggers safe fallback
 drug_info = DrugInfo(**llm_response_dict)
 ```
 
@@ -303,8 +267,7 @@ class FieldValue(BaseModel):
     missing: bool = False           # True = "data not found", NOT a fabrication
 ```
 The system prompt (`prompts/drug_info.txt`) explicitly tells the LLM:
-> "If data is not present in the provided context, set `missing: true` and `content: null`.
-> Do NOT approximate, infer, or fabricate."
+> "If data is not present in the provided context, set `missing: true` and `content: null`. Do NOT approximate, infer, or fabricate."
 
 ---
 
@@ -324,12 +287,17 @@ The system prompt (`prompts/drug_info.txt`) explicitly tells the LLM:
 5. pipeline.py:
    a. pubchem.enrich_structure(smiles)
       -> CID, IUPAC name, image URL, formula, weight
-   b. retriever.retrieve(iupac_name, n=8)
-      -> top-8 text chunks from ChromaDB
-   c. Build prompt: system_prompt + context chunks + SMILES
-   d. llm.generate_structured_output(prompt)
-      -> raw JSON string from Qwen
-   e. json.loads(raw) -> DrugInfo(**parsed) -> Pydantic validation
+   b. build_retrieval_query(structure_data)
+      -> Generates retrieval query from synonyms and IUPAC name
+   c. retriever.retrieve(query, n_results=8, pubchem_cid=cid)
+      -> Cosine similarity search filtered strictly for the matching drug CID
+   d. Build context: Format chunk strings and construct source map mapping source ids
+   e. system_prompt + context chunks + SMILES prompt construction
+   f. llm.generate_structured_output(prompt)
+      -> raw JSON string from Google Gemini API (using HTTP POST)
+   g. resolve_field_citations(raw_dict, source_map)
+      -> Map source_ids inside fields to real metadata citations (source name, URL)
+   h. Pydantic validation -> DrugInfo(**parsed) -> Return validated schema
 6. FastAPI returns { success: true, data: DrugInfo }
 7. Next.js route returns JSON to browser
 8. Frontend: appends assistant message with drugInfo
@@ -340,265 +308,79 @@ The system prompt (`prompts/drug_info.txt`) explicitly tells the LLM:
 
 | Layer | Mechanism |
 |---|---|
-| **Retrieval** | LLM only sees retrieved chunks, not its general training knowledge |
+| **Retrieval** | LLM only sees retrieved chunks restricted by `pubchem_cid`, not its general training knowledge |
 | **System prompt** | Explicit instruction: "answer ONLY from context; use missing:true if absent" |
-| **Schema validation** | Pydantic rejects any response not conforming to DrugInfo shape |
+| **Schema validation** | Pydantic rejects any response not conforming to DrugInfo shape, falling back to a structured "missing" response |
 
 ---
 
 ## 4. Phase 2 — Knowledge Base Construction
 
-**Goal**: Ingest pharmaceutical text from DailyMed, PubMed, and PubChem into ChromaDB
-so Phase 3 retrieval has real data.
-
-**Estimated time**: 1-2 days for benchmark set (5-10 drugs).
+**Goal**: Ingest pharmaceutical text from DailyMed, PubMed, and PubChem into ChromaDB using local Ollama embeddings so Phase 3 retrieval has real data.
 
 ---
 
-### Step 1 — Install Phase 2 Dependencies
+### Step 1 — Install Dependencies
 
-Uncomment the Phase 2 packages in `backend/requirements.txt`:
+Install the core dependencies inside your virtual environment:
 
-```
-chromadb==0.5.3
-openai==1.35.7
-```
-
-Install:
 ```bash
 cd backend
-pip install chromadb openai
+pip install chromadb httpx ollama pydantic fastapi uvicorn python-dotenv
 ```
 
-For fully local embeddings (no OpenAI key needed):
+Ensure Ollama is running locally and has the embedding model downloaded:
 ```bash
-pip install chromadb
 ollama pull nomic-embed-text
 ```
 
 ---
 
-### Step 2 — Implement `ingest/dailymed.py`
+### Step 2 — Implement Ingestion Scripts
 
-Replace the stub body with:
+Ingestion helper functions fetch labels and abstracts:
+- `backend/ingest/dailymed.py` parses DailyMed label sections (indications, adverse effects, ADME).
+- `backend/ingest/pubmed.py` calls NCBI E-utilities to retrieve abstracts.
+- `backend/ingest/pubchem.py` retrieves canonical structure information.
 
-```python
-import httpx
-
-BASE_URL = "https://dailymed.nlm.nih.gov/dailymed/services/v2"
-
-async def search_drug_labels(drug_name: str) -> list[dict]:
-    async with httpx.AsyncClient(timeout=20) as client:
-        resp = await client.get(
-            f"{BASE_URL}/spls.json",
-            params={"drug_name": drug_name, "pagesize": 5},
-        )
-        return resp.json().get("data", [])
-
-async def get_label_sections(set_id: str) -> dict:
-    async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.get(f"{BASE_URL}/spls/{set_id}.json")
-        data = resp.json()
-
-    sections = {}
-    for section in data.get("data", {}).get("sections", []):
-        name = section.get("name", "").lower()
-        text = section.get("text", "")
-        if "indication" in name:
-            sections["indications"] = text
-        elif "contraindication" in name:
-            sections["contraindications"] = text
-        elif "adverse" in name or "side effect" in name:
-            sections["adverse_effects"] = text
-        elif "drug interaction" in name:
-            sections["drug_interactions"] = text
-        elif "clinical pharmacology" in name:
-            sections["clinical_pharmacology"] = text   # contains ADME
-    return sections
-```
+These are orchestrated via `backend/ingest/run_ingest.py`.
 
 ---
 
-### Step 3 — Implement `ingest/pubmed.py`
+### Step 3 — Run the Ingestion Script
 
-Replace the stub body with:
+Run the ingestion script from the `backend` directory to construct the local vector database for benchmark drugs:
 
-```python
-import os, httpx
-import xml.etree.ElementTree as ET
-
-NCBI_API_KEY = os.getenv("NCBI_API_KEY", "")
-BASE_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
-
-async def search_pubmed(query: str, max_results: int = 20) -> list[str]:
-    params = {
-        "db": "pubmed", "term": query, "retmax": max_results,
-        "retmode": "json", "api_key": NCBI_API_KEY,
-    }
-    async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.get(f"{BASE_URL}/esearch.fcgi", params=params)
-    return resp.json()["esearchresult"]["idlist"]
-
-async def fetch_abstracts(pmids: list[str]) -> list[dict]:
-    if not pmids:
-        return []
-    params = {
-        "db": "pubmed", "id": ",".join(pmids),
-        "retmode": "xml", "rettype": "abstract",
-        "api_key": NCBI_API_KEY,
-    }
-    async with httpx.AsyncClient(timeout=20) as client:
-        resp = await client.get(f"{BASE_URL}/efetch.fcgi", params=params)
-
-    root = ET.fromstring(resp.text)
-    results = []
-    for article in root.findall(".//PubmedArticle"):
-        pmid = article.findtext(".//PMID")
-        title = article.findtext(".//ArticleTitle")
-        abstract = article.findtext(".//AbstractText")
-        results.append({"pmid": pmid, "title": title, "abstract": abstract or ""})
-    return results
-```
-
----
-
-### Step 4 — Create the Ingestion Script
-
-Create `backend/ingest/run_ingest.py`:
-
-```python
-"""
-Populate ChromaDB with drug data for the benchmark set.
-
-Run once before Phase 3:
-    cd backend
-    python -m ingest.run_ingest
-"""
-
-import asyncio
-import chromadb
-from openai import AsyncOpenAI
-
-from ingest.pubchem import get_pharmacology_text, get_compound_by_smiles
-from ingest.dailymed import search_drug_labels, get_label_sections
-from ingest.pubmed import search_pubmed, fetch_abstracts
-
-CHROMA_PATH = "../data/chroma"
-COLLECTION_NAME = "pharma_docs"
-
-# Start with these — expand for Phase 4 evaluation
-BENCHMARK_DRUGS = [
-    {"name": "Aspirin",      "smiles": "CC(=O)Oc1ccccc1C(=O)O"},
-    {"name": "Ibuprofen",    "smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)O"},
-    {"name": "Metformin",    "smiles": "CN(C)C(=N)NC(N)=N"},
-    {"name": "Atorvastatin", "smiles": "CC(C)c1c(C(=O)Nc2ccccc2F)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O"},
-    {"name": "Caffeine",     "smiles": "Cn1cnc2c1c(=O)n(c(=O)n2C)C"},
-]
-
-async def embed_text(text: str, client: AsyncOpenAI) -> list[float]:
-    resp = await client.embeddings.create(
-        model="text-embedding-3-small",
-        input=text[:8000],
-    )
-    return resp.data[0].embedding
-
-async def ingest_drug(drug: dict, collection, openai_client: AsyncOpenAI):
-    name = drug["name"]
-    smiles = drug["smiles"]
-    print(f"\n-- Ingesting {name} --")
-    chunks = []
-
-    # PubChem pharmacology text
-    props = await get_compound_by_smiles(smiles)
-    if props:
-        cid = props.get("CID")
-        text = await get_pharmacology_text(cid)
-        if text:
-            chunks.append({
-                "text": text, "source": f"PubChem CID {cid}",
-                "url": f"https://pubchem.ncbi.nlm.nih.gov/compound/{cid}",
-                "drug": name, "field": "pharmacology",
-            })
-            print(f"  PubChem OK ({len(text)} chars)")
-
-    # DailyMed sections
-    labels = await search_drug_labels(name)
-    if labels:
-        set_id = labels[0].get("setid")
-        sections = await get_label_sections(set_id)
-        for field, text in sections.items():
-            if text:
-                chunks.append({
-                    "text": text[:4000], "source": f"DailyMed SPL -- {name}",
-                    "url": "https://dailymed.nlm.nih.gov",
-                    "drug": name, "field": field,
-                })
-        print(f"  DailyMed OK ({len(sections)} sections)")
-
-    # PubMed abstracts
-    pmids = await search_pubmed(f"{name} pharmacology mechanism", max_results=10)
-    abstracts = await fetch_abstracts(pmids)
-    for ab in abstracts:
-        if ab["abstract"]:
-            chunks.append({
-                "text": f"{ab['title']}\n\n{ab['abstract']}",
-                "source": f"PubMed PMID {ab['pmid']}",
-                "url": f"https://pubmed.ncbi.nlm.nih.gov/{ab['pmid']}",
-                "drug": name, "field": "research",
-            })
-    print(f"  PubMed OK ({len(abstracts)} abstracts)")
-
-    # Embed and store
-    for i, chunk in enumerate(chunks):
-        embedding = await embed_text(chunk["text"], openai_client)
-        collection.add(
-            ids=[f"{name}-{i}"],
-            embeddings=[embedding],
-            documents=[chunk["text"]],
-            metadatas=[{k: v for k, v in chunk.items() if k != "text"}],
-        )
-    print(f"  Stored {len(chunks)} chunks")
-
-async def main():
-    db = chromadb.PersistentClient(path=CHROMA_PATH)
-    collection = db.get_or_create_collection(
-        name=COLLECTION_NAME,
-        metadata={"hnsw:space": "cosine"},
-    )
-    openai_client = AsyncOpenAI()
-
-    for drug in BENCHMARK_DRUGS:
-        await ingest_drug(drug, collection, openai_client)
-
-    print(f"\nDone. Total chunks: {collection.count()}")
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-
-**Run it:**
 ```bash
 cd backend
 python -m ingest.run_ingest
 ```
 
+Upon success, you will see a console summary table listing the number of text chunks stored in ChromaDB per drug and field.
+
 ---
 
-### Step 5 — Implement `rag/retriever.py`
+### Step 4 — Implement `rag/retriever.py`
 
-Replace the stub with:
+Our retriever uses local Ollama to embed queries and performs a two-stage lookup (metadata filter by `pubchem_cid`, then vector search):
 
 ```python
-import os, chromadb
-from openai import AsyncOpenAI
+import os
+import chromadb
+import ollama
 
 CHROMA_PATH = os.getenv("CHROMA_PATH", "../data/chroma")
 COLLECTION_NAME = "pharma_docs"
+EMBED_MODEL = os.getenv("EMBED_MODEL", "nomic-embed-text")
+
+def _embed(text: str) -> list[float]:
+    resp = ollama.embed(model=EMBED_MODEL, input=text[:8000])
+    return resp.embeddings[0]
 
 class Retriever:
     def __init__(self):
-        self.db = chromadb.PersistentClient(path=CHROMA_PATH)
-        self.collection = self.db.get_or_create_collection(
+        self.client = chromadb.PersistentClient(path=CHROMA_PATH)
+        self.collection = self.client.get_or_create_collection(
             name=COLLECTION_NAME,
             metadata={"hnsw:space": "cosine"},
         )
@@ -607,22 +389,26 @@ class Retriever:
     def is_ready(self) -> bool:
         return self._ready
 
-    async def retrieve(self, query: str, n_results: int = 8) -> list[dict]:
-        client = AsyncOpenAI()
-        resp = await client.embeddings.create(
-            model="text-embedding-3-small", input=query
-        )
-        query_vec = resp.data[0].embedding
+    async def retrieve(self, query: str, n_results: int = 8, pubchem_cid: str | None = None) -> list[dict]:
+        if not self._ready:
+            return []
 
-        results = self.collection.query(
-            query_embeddings=[query_vec],
-            n_results=n_results,
-            include=["documents", "metadatas", "distances"],
-        )
+        query_vec = _embed(query)
+        kwargs = {
+            "query_embeddings": [query_vec],
+            "n_results": n_results,
+            "include": ["documents", "metadatas", "distances"],
+        }
+        if pubchem_cid:
+            kwargs["where"] = {"pubchem_cid": pubchem_cid}
+
+        results = self.collection.query(**kwargs)
         return [
             {
-                "text": doc, "source": meta["source"],
-                "url": meta.get("url"), "field": meta.get("field"),
+                "text": doc,
+                "source": meta.get("source", ""),
+                "url": meta.get("url", ""),
+                "field": meta.get("field", ""),
                 "distance": dist,
             }
             for doc, meta, dist in zip(
@@ -637,128 +423,95 @@ class Retriever:
 
 ## 5. Phase 3 — Live RAG Pipeline
 
-**Goal**: Wire retrieval + Qwen + schema validation into a live API response.
-
-**Prerequisites**:
-- Phase 2 complete (ChromaDB populated with data)
-- Ollama installed and running
+**Goal**: Wire retrieval + Google Gemini + schema validation into a live API response.
 
 ---
 
-### Step 1 — Install Ollama + Qwen
+### Step 1 — Configure environment variables
 
-1. Download Ollama: https://ollama.com/download
-2. Pull a Qwen model:
-```bash
-ollama pull qwen2.5:7b        # fast, low VRAM (development)
-ollama pull qwen2.5:14b       # better quality
-ollama pull qwen2.5:72b-instruct-q4_K_M  # recommended for production
-```
-3. Verify it's running:
-```bash
-curl http://localhost:11434/api/tags
+Create or open `backend/.env` and set:
+
+```env
+LLM_PROVIDER=gemini
+GEMINI_API_KEY=your_google_gemini_api_key_here
+GEMINI_MODEL=gemini-3.5-flash-lite
+
+# Embeddings & ChromaDB configurations
+EMBED_MODEL=nomic-embed-text
+CHROMA_PATH=../data/chroma
 ```
 
 ---
 
-### Step 2 — Implement `rag/llm.py` — Ollama Branch
+### Step 2 — Implement `rag/llm.py` — Gemini Call
 
-Replace the `_call_ollama` stub body:
+We call the Google Gemini API directly over HTTP POST, enabling the `responseMimeType: "application/json"` generation parameter:
 
 ```python
-async def _call_ollama(system_prompt, user_message, schema) -> dict:
-    import httpx, json
+async def _call_gemini(
+    system_prompt: str,
+    user_message: str,
+    schema: type[BaseModel],
+) -> dict:
+    """
+    Call Google Gemini API with JSON mode.
+    Requires: httpx and GEMINI_API_KEY env var.
+    """
+    import httpx
+    import json
+
+    if not GEMINI_API_KEY:
+        raise ValueError("GEMINI_API_KEY environment variable is not set.")
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
 
     payload = {
-        "model": OLLAMA_MODEL,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user",   "content": user_message},
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {"text": user_message}
+                ]
+            }
         ],
-        "format": "json",      # forces JSON-only output from Ollama
-        "stream": False,
-        "options": {
-            "temperature": 0.1,    # low temperature = factual, deterministic
-            "num_predict": 4096,
+        "systemInstruction": {
+            "parts": [
+                {"text": system_prompt}
+            ]
         },
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "temperature": 0.1,
+        }
     }
 
-    async with httpx.AsyncClient(timeout=120) as client:
-        resp = await client.post(f"{OLLAMA_BASE_URL}/api/chat", json=payload)
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        resp = await client.post(url, json=payload)
         resp.raise_for_status()
+        data = resp.json()
 
-    raw = resp.json()["message"]["content"]
+    try:
+        raw = data["candidates"][0]["content"]["parts"][0]["text"]
+    except (KeyError, IndexError) as exc:
+        raise ValueError(f"Gemini API returned unexpected response format: {data}") from exc
+
     try:
         return json.loads(raw)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"LLM returned invalid JSON: {e}\nRaw: {raw[:500]}")
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"Gemini returned invalid JSON: {exc}\nRaw output (first 500 chars):\n{raw[:500]}"
+        ) from exc
 ```
 
 ---
 
-### Step 3 — Update `rag/pipeline.py`
+### Step 3 — Swap the Frontend Mock for a Real Backend Proxy
 
-Replace the `run_pipeline` stub:
-
-```python
-import json
-from pathlib import Path
-
-from rag.schema import DrugInfo
-from rag.retriever import Retriever
-from rag.llm import generate_structured_output
-from ingest.pubchem import enrich_structure
-
-PROMPT_TEMPLATE = Path(__file__).parent.parent / "prompts" / "drug_info.txt"
-_retriever = None
-
-def get_retriever() -> Retriever:
-    global _retriever
-    if _retriever is None:
-        _retriever = Retriever()
-    return _retriever
-
-async def run_pipeline(smiles: str) -> DrugInfo:
-    retriever = get_retriever()
-
-    # 1. Resolve SMILES via PubChem
-    structure_data = await enrich_structure(smiles)
-    drug_query = structure_data.get("iupac_name") or smiles
-
-    # 2. Retrieve relevant chunks
-    chunks = await retriever.retrieve(drug_query, n_results=8)
-    context = "\n\n---\n\n".join(
-        f"[Source {i}: {c['source']}]\n{c['text']}"
-        for i, c in enumerate(chunks, 1)
-    )
-
-    # 3. Build prompt
-    template = PROMPT_TEMPLATE.read_text()
-    system_prompt = template.replace("{context}", context).replace("{smiles}", smiles)
-    user_message = f"Drug SMILES: {smiles}\nIUPAC name (PubChem): {drug_query}"
-
-    # 4. Call LLM
-    raw_dict = await generate_structured_output(
-        system_prompt=system_prompt,
-        user_message=user_message,
-        output_schema=DrugInfo,
-    )
-
-    # 5. Inject trusted PubChem structure (not from LLM)
-    raw_dict["chemical_structure"] = structure_data
-    raw_dict["query_smiles"] = smiles
-
-    # 6. Validate
-    return DrugInfo(**raw_dict)
-```
-
----
-
-### Step 4 — Swap the Mock API Route for a Real Proxy
-
-In `frontend/app/api/query/route.ts`, replace the mock block with:
+Update `frontend/app/api/query/route.ts` to proxy requests directly to the FastAPI server:
 
 ```typescript
+import { NextRequest, NextResponse } from "next/server";
+
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   if (!body?.smiles) {
@@ -778,22 +531,19 @@ export async function POST(req: NextRequest) {
 
 ---
 
-### Step 5 — Start Both Servers
+### Step 4 — Run the App
 
-```bash
-# Terminal 1 — Python backend
-cd backend
-uvicorn main:app --reload --port 8000
-
-# Terminal 2 — Next.js frontend
-cd frontend
-npm run dev
-```
-
-Navigate to `http://localhost:3000`, enter Aspirin SMILES:
-```
-CC(=O)Oc1ccccc1C(=O)O
-```
+1. **Start the FastAPI backend**:
+   ```bash
+   cd backend
+   uvicorn main:app --reload --port 8000
+   ```
+2. **Start the Next.js frontend**:
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+3. Open `http://localhost:3000` in the browser, enter a valid SMILES query (e.g. `CC(=O)Oc1ccccc1C(=O)O` for Aspirin), and inspect the verified structured outputs.
 
 ---
 
@@ -801,11 +551,11 @@ CC(=O)Oc1ccccc1C(=O)O
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| LLM returns invalid JSON | Temperature too high / model too small | Lower `temperature` to 0.05; try a larger model |
-| ChromaDB returns 0 results | Ingestion not run, or query mismatch | Run `run_ingest.py`; always query by IUPAC name, not SMILES |
-| Pydantic ValidationError | LLM returned bare string instead of FieldValue | Add recovery: wrap bare strings as `{"content": str, "sources": [], "missing": false}` |
-| Ollama timeout | Model loading slow on first call | Increase FastAPI client timeout to 180s; pre-warm Ollama |
-| All fields `missing: true` | Retriever found no relevant chunks | Check chunk count in ChromaDB; adjust `n_results` |
+| `Gemini API key is not set` | Missing env variable in FastAPI | Check that `GEMINI_API_KEY` is set inside `backend/.env` and FastAPI was restarted. |
+| `HTTP 403 / 400` from Gemini | Invalid API key or model name | Check the API key correctness and verify if your region supports the model configured in `GEMINI_MODEL`. |
+| LLM returns invalid JSON | Temp config/prompt issue | Ensure `temperature` is low (0.1) and JSON mode is enforced in the payload. |
+| ChromaDB returns 0 results | Ingestion not run, or query mismatch | Run `run_ingest.py` before querying; check that path matches. |
+| All fields `missing: true` | Retrieval fetched empty results | Ensure ChromaDB contains data for the drug and query synonyms are correct. |
 
 ---
 
@@ -815,15 +565,18 @@ All variables go in `backend/.env` (copy from `backend/.env.example`).
 
 | Variable | Default | Required | Description |
 |---|---|---|---|
-| `LLM_PROVIDER` | `ollama` | Yes | `ollama` / `openai` / `anthropic` |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | If ollama | Ollama server URL |
-| `OLLAMA_MODEL` | `qwen2.5:72b` | If ollama | Any model pulled via Ollama |
+| `LLM_PROVIDER` | `gemini` | Yes | Model provider: `gemini` / `ollama` / `openai` / `anthropic` |
+| `GEMINI_API_KEY` | — | If gemini | API Key from Google AI Studio |
+| `GEMINI_MODEL` | `gemini-3.5-flash-lite` | If gemini | Gemini model name (e.g., `gemini-3.5-flash-lite` / `gemini-1.5-flash` / `gemini-1.5-pro`) |
+| `EMBED_MODEL` | `nomic-embed-text` | Yes | Local text embedding model name |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | If ollama | Ollama server URL (if using ollama provider for LLM) |
+| `OLLAMA_MODEL` | `qwen2.5:7b` | If ollama | Model name for local LLM (if using ollama provider for LLM) |
 | `OPENAI_API_KEY` | — | If openai | sk-... |
 | `OPENAI_MODEL` | `gpt-4o` | If openai | OpenAI model name |
 | `ANTHROPIC_API_KEY` | — | If anthropic | sk-ant-... |
 | `ANTHROPIC_MODEL` | `claude-3-5-sonnet-20241022` | If anthropic | Anthropic model name |
-| `NCBI_API_KEY` | — | No | Raises PubMed rate limit 3->10 req/s. Free at ncbi.nlm.nih.gov/account |
-| `CHROMA_PATH` | `../data/chroma` | Phase 2+ | Path to ChromaDB persistence directory |
+| `NCBI_API_KEY` | — | No | Optional key raising PubMed request limits |
+| `CHROMA_PATH` | `../data/chroma` | Phase 2+ | Path to ChromaDB vector DB persistence directory |
 
 ---
 
@@ -836,7 +589,7 @@ All variables go in `backend/.env` (copy from `backend/.env.example`).
 | `app/page.tsx` | Layout + chat state management | 2 (add loading skeleton) |
 | `app/globals.css` | Design tokens + global styles | Any (visual changes) |
 | `app/layout.tsx` | HTML root, SEO metadata | Any |
-| `app/api/query/route.ts` | **Phase 1**: mock. **Phase 3**: real proxy | 3 |
+| `app/api/query/route.ts` | Next.js API router proxy | 3 |
 | `lib/types.ts` | TypeScript DrugInfo schema | Only if schema fields change |
 | `lib/api.ts` | Frontend fetch wrapper | Only if API changes |
 | `components/DrugInfoCard.tsx` | Tabbed drug info card | Add tabs for new schema fields |
@@ -852,14 +605,14 @@ All variables go in `backend/.env` (copy from `backend/.env.example`).
 |---|---|---|
 | `main.py` | FastAPI app, routes, CORS | 3 (add retriever health check) |
 | `rag/schema.py` | Pydantic DrugInfo model | Only if output schema changes |
-| `rag/pipeline.py` | **Phase 1**: mock. **Phase 3**: full RAG | 3 |
-| `rag/retriever.py` | ChromaDB vector search | 2 (implement), 3 (tune n_results) |
-| `rag/llm.py` | LLM provider client | 3 (implement stubs) |
-| `ingest/pubchem.py` | PubChem REST API | 2 (add text ingestion calls) |
-| `ingest/dailymed.py` | DailyMed FDA labels | 2 (implement) |
-| `ingest/pubmed.py` | PubMed abstracts | 2 (implement) |
-| `ingest/run_ingest.py` | Ingestion script | Create in Phase 2 |
-| `prompts/drug_info.txt` | LLM system prompt | 3 (tune for accuracy per field) |
+| `rag/pipeline.py` | Full RAG pipeline orchestration | 3 |
+| `rag/retriever.py` | Two-stage ChromaDB vector search | 2 (implement), 3 (tune n_results) |
+| `rag/llm.py` | LLM provider client (implements Gemini/Ollama/OpenAI/Anthropic) | 3 |
+| `ingest/pubchem.py` | PubChem REST API ingestion | 2 |
+| `ingest/dailymed.py` | DailyMed FDA label scraping | 2 |
+| `ingest/pubmed.py` | PubMed abstract retrieval | 2 |
+| `ingest/run_ingest.py` | Main ingestion orchestration script | Create in Phase 2 |
+| `prompts/drug_info.txt` | LLM system prompt template | 3 (tune for accuracy per field) |
 | `.env.example` | Environment variable template | As new variables are added |
 
 ### Docs

@@ -1,0 +1,642 @@
+{
+  "timestamp": "2026-08-07T12:51:03.987619",
+  "model_evaluated": "gemini-flash-lite-latest",
+  "metrics_average": {
+    "avg_keyword_score": 17.6,
+    "avg_correctness_score": 0.0,
+    "avg_hallucination_score": 0.0,
+    "avg_citation_score": 100.0,
+    "avg_overall_score": 72.5
+  },
+  "drugs_detail": [
+    {
+      "drug": "aspirin",
+      "success": true,
+      "duration_sec": 11.18,
+      "schema_compliance": 100,
+      "citation_score": 100.0,
+      "avg_keyword_score": 11.0,
+      "avg_correctness_score": 0.0,
+      "avg_hallucination_score": 0.0,
+      "overall_score": 70.3,
+      "fields": {
+        "mechanism_of_action": {
+          "keyword_score": 57.1,
+          "matched_keywords": [
+            "cyclooxygenase",
+            "COX-1",
+            "acetylation",
+            "thromboxane A2"
+          ],
+          "missing_keywords": [
+            "inhibits",
+            "COX-2",
+            "prostaglandin"
+          ],
+          "length": 93,
+          "has_sources": true,
+          "sources_count": 1,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "indications": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "pain",
+            "fever",
+            "arthritis",
+            "inflammation",
+            "myocardial infarction",
+            "stroke",
+            "cardiovascular",
+            "prophylaxis"
+          ],
+          "length": 153,
+          "has_sources": true,
+          "sources_count": 3,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "contraindications": {
+          "keyword_score": 20.0,
+          "matched_keywords": [
+            "hypersensitivity"
+          ],
+          "missing_keywords": [
+            "bleeding",
+            "Reye's syndrome",
+            "peptic ulcer",
+            "pregnancy"
+          ],
+          "length": 113,
+          "has_sources": true,
+          "sources_count": 1,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "absorption": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "rapidly absorbed",
+            "bioavailability",
+            "Tmax"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "distribution": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "distribution",
+            "protein binding",
+            "albumin"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "metabolism": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "hydrolyzed",
+            "salicylate",
+            "salicylic acid",
+            "liver"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "excretion": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "renal",
+            "excreted",
+            "half-life",
+            "urine"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        }
+      }
+    },
+    {
+      "drug": "ibuprofen",
+      "success": true,
+      "duration_sec": 8.22,
+      "schema_compliance": 100,
+      "citation_score": 100.0,
+      "avg_keyword_score": 0.0,
+      "avg_correctness_score": 0.0,
+      "avg_hallucination_score": 0.0,
+      "overall_score": 66.7,
+      "fields": {
+        "mechanism_of_action": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "inhibits",
+            "cyclooxygenase",
+            "COX-1",
+            "COX-2",
+            "prostaglandin"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "indications": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "pain",
+            "fever",
+            "arthritis",
+            "inflammation",
+            "dysmenorrhea"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "contraindications": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "hypersensitivity",
+            "asthma",
+            "urticaria",
+            "bleeding",
+            "renal impairment"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "absorption": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "rapidly absorbed",
+            "bioavailability",
+            "Tmax"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "distribution": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "protein binding"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "metabolism": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "metabolized",
+            "CYP2C9",
+            "oxidation"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "excretion": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "excreted",
+            "half-life",
+            "urine"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        }
+      }
+    },
+    {
+      "drug": "metformin",
+      "success": true,
+      "duration_sec": 12.0,
+      "schema_compliance": 100,
+      "citation_score": 100.0,
+      "avg_keyword_score": 48.8,
+      "avg_correctness_score": 0.0,
+      "avg_hallucination_score": 0.0,
+      "overall_score": 82.9,
+      "fields": {
+        "mechanism_of_action": {
+          "keyword_score": 75.0,
+          "matched_keywords": [
+            "hepatic glucose production",
+            "insulin sensitivity",
+            "AMPK"
+          ],
+          "missing_keywords": [
+            "gluconeogenesis"
+          ],
+          "length": 339,
+          "has_sources": true,
+          "sources_count": 2,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "indications": {
+          "keyword_score": 66.7,
+          "matched_keywords": [
+            "type 2 diabetes",
+            "diabetes mellitus"
+          ],
+          "missing_keywords": [
+            "glycemic control"
+          ],
+          "length": 137,
+          "has_sources": true,
+          "sources_count": 2,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "contraindications": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "renal impairment",
+            "acidosis",
+            "lactic acidosis",
+            "hypersensitivity"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "absorption": {
+          "keyword_score": 75.0,
+          "matched_keywords": [
+            "bioavailability",
+            "Tmax",
+            "food"
+          ],
+          "missing_keywords": [
+            "slowly absorbed"
+          ],
+          "length": 393,
+          "has_sources": true,
+          "sources_count": 1,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "distribution": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "protein binding negligible",
+            "not bound"
+          ],
+          "length": 184,
+          "has_sources": true,
+          "sources_count": 1,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "metabolism": {
+          "keyword_score": 50.0,
+          "matched_keywords": [
+            "unchanged"
+          ],
+          "missing_keywords": [
+            "not metabolized"
+          ],
+          "length": 122,
+          "has_sources": true,
+          "sources_count": 1,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "excretion": {
+          "keyword_score": 75.0,
+          "matched_keywords": [
+            "renal",
+            "half-life",
+            "tubular secretion"
+          ],
+          "missing_keywords": [
+            "excreted"
+          ],
+          "length": 363,
+          "has_sources": true,
+          "sources_count": 1,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        }
+      }
+    },
+    {
+      "drug": "atorvastatin",
+      "success": true,
+      "duration_sec": 7.61,
+      "schema_compliance": 100,
+      "citation_score": 100.0,
+      "avg_keyword_score": 7.1,
+      "avg_correctness_score": 0.0,
+      "avg_hallucination_score": 0.0,
+      "overall_score": 69.0,
+      "fields": {
+        "mechanism_of_action": {
+          "keyword_score": 50.0,
+          "matched_keywords": [
+            "HMG-CoA reductase",
+            "mevalonate"
+          ],
+          "missing_keywords": [
+            "inhibits",
+            "cholesterol biosynthesis"
+          ],
+          "length": 219,
+          "has_sources": true,
+          "sources_count": 1,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "indications": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "hypercholesterolemia",
+            "hyperlipidemia",
+            "cardiovascular disease",
+            "cholesterol",
+            "reduction"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "contraindications": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "liver disease",
+            "pregnancy",
+            "lactation",
+            "hypersensitivity"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "absorption": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "absorbed",
+            "bioavailability",
+            "Tmax"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "distribution": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "protein binding",
+            "highly bound"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "metabolism": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "CYP3A4",
+            "metabolites",
+            "active"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "excretion": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "excreted",
+            "bile",
+            "feces",
+            "half-life"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        }
+      }
+    },
+    {
+      "drug": "caffeine",
+      "success": true,
+      "duration_sec": 11.45,
+      "schema_compliance": 100,
+      "citation_score": 100.0,
+      "avg_keyword_score": 21.0,
+      "avg_correctness_score": 0.0,
+      "avg_hallucination_score": 0.0,
+      "overall_score": 73.7,
+      "fields": {
+        "mechanism_of_action": {
+          "keyword_score": 60.0,
+          "matched_keywords": [
+            "adenosine receptor",
+            "antagonist",
+            "A2A"
+          ],
+          "missing_keywords": [
+            "block",
+            "A1"
+          ],
+          "length": 281,
+          "has_sources": true,
+          "sources_count": 2,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "indications": {
+          "keyword_score": 20.0,
+          "matched_keywords": [
+            "apnea"
+          ],
+          "missing_keywords": [
+            "fatigue",
+            "drowsiness",
+            "headache",
+            "migraine"
+          ],
+          "length": 20,
+          "has_sources": true,
+          "sources_count": 1,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "contraindications": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "hypersensitivity",
+            "cardiac arrhythmias",
+            "anxiety",
+            "peptic ulcer"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "absorption": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "absorbed",
+            "bioavailability",
+            "Tmax"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "distribution": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "blood-brain barrier",
+            "crosses",
+            "placenta"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "metabolism": {
+          "keyword_score": 66.7,
+          "matched_keywords": [
+            "CYP1A2",
+            "metabolized"
+          ],
+          "missing_keywords": [
+            "demethylation"
+          ],
+          "length": 54,
+          "has_sources": true,
+          "sources_count": 1,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        },
+        "excretion": {
+          "keyword_score": 0.0,
+          "matched_keywords": [],
+          "missing_keywords": [
+            "excreted",
+            "urine",
+            "half-life"
+          ],
+          "length": 0,
+          "has_sources": true,
+          "sources_count": 0,
+          "correctness_score": 0,
+          "hallucination_score": 0,
+          "rationale": "LLM evaluation disabled (run with --llm-eval to enable)"
+        }
+      }
+    }
+  ]
+}

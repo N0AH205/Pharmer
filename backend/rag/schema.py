@@ -33,11 +33,13 @@ class FieldValue(BaseModel):
     missing: bool = False
 
 
-class ADMEFields(BaseModel):
-    absorption: FieldValue
-    distribution: FieldValue
-    metabolism: FieldValue
-    excretion: FieldValue
+# ── Overview section ──────────────────────────────────────────────────────────
+
+class DrugName(BaseModel):
+    generic: str
+    brand_names: list[str] = Field(default_factory=list)
+    lab_codes: list[str] = Field(default_factory=list)
+    sources: list[Citation] = Field(default_factory=list)
 
 
 class ChemicalStructure(BaseModel):
@@ -51,11 +53,54 @@ class ChemicalStructure(BaseModel):
     sources: list[Citation] = Field(default_factory=list)
 
 
-class DrugName(BaseModel):
-    generic: str
-    brand_names: list[str] = Field(default_factory=list)
-    sources: list[Citation] = Field(default_factory=list)
+# ── Pharmacodynamics section ──────────────────────────────────────────────────
 
+class PharmacodynamicsFields(BaseModel):
+    mechanism_of_action: FieldValue   # Step-by-step biological cascade
+    physiologic_effect: FieldValue    # Direct functional/systemic changes
+    binding_affinity: FieldValue      # Kd or Ki values
+    selectivity: FieldValue           # Primary vs off-target affinity
+    potency: FieldValue               # EC50 / ED50
+    efficacy: FieldValue              # Emax — maximum achievable effect
+
+
+# ── Pharmacokinetics section (ADME) ──────────────────────────────────────────
+
+class ADMEFields(BaseModel):
+    absorption: FieldValue    # Bioavailability, Tmax, absorption sites
+    distribution: FieldValue  # Vd, protein binding, BBB
+    metabolism: FieldValue    # CYP450, metabolites, hepatic involvement
+    excretion: FieldValue     # CL, t1/2, elimination pathways
+
+
+# ── Toxicology section ────────────────────────────────────────────────────────
+
+class ToxicologyFields(BaseModel):
+    ld50: FieldValue           # Lethal dose 50 in animal models
+    toxic_doses: FieldValue    # Clinical toxic / overdose thresholds
+    organ_toxicity: FieldValue # Target organs for toxicity
+    overdose_management: FieldValue  # Antidotes, supportive care
+
+
+# ── Therapeutic profile section ───────────────────────────────────────────────
+
+class TherapeuticProfile(BaseModel):
+    indications: FieldValue        # Approved + key off-label uses
+    contraindications: FieldValue  # Absolute and relative
+    adverse_effects: FieldValue    # Common and serious ADRs
+    drug_interactions: FieldValue  # DDI, DFI, drug-disease interactions
+
+
+# ── History section ───────────────────────────────────────────────────────────
+
+class HistoryFields(BaseModel):
+    background: FieldValue     # Medical context, unmet need, key figures
+    discovery: FieldValue      # Origin of lead compound
+    development: FieldValue    # Optimization, preclinical, patents
+    clinical_trials: FieldValue  # Phase I–III, approvals
+
+
+# ── Root output model ─────────────────────────────────────────────────────────
 
 class DrugInfo(BaseModel):
     """
@@ -69,15 +114,20 @@ class DrugInfo(BaseModel):
         "It does not constitute clinical advice. Always consult a licensed "
         "clinician or pharmacist for patient-specific guidance."
     )
+
+    # Overview
     drug_name: DrugName
-    mechanism_of_action: FieldValue
-    adme: ADMEFields
+    therapeutic_classes: FieldValue   # Broad clinical category + pharmacological class
     chemical_structure: ChemicalStructure
-    indications: FieldValue
-    contraindications: FieldValue
-    adverse_effects: FieldValue
-    drug_interactions: FieldValue
+
+    # Sections
+    pharmacodynamics: PharmacodynamicsFields
+    adme: ADMEFields
+    toxicology: ToxicologyFields
+    therapeutic_profile: TherapeuticProfile
+    history: HistoryFields
 
 
 class QueryRequest(BaseModel):
     smiles: str = Field(..., min_length=1, description="A valid SMILES string")
+
