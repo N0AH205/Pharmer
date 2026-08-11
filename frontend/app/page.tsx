@@ -7,13 +7,6 @@ import SMILESInput from "@/components/SMILESInput";
 import ChatInterface from "@/components/ChatInterface";
 import styles from "./page.module.css";
 
-const RECENT_QUERIES = [
-  { name: "Aspirin", smiles: "CC(=O)Oc1ccccc1C(=O)O" },
-  { name: "Caffeine", smiles: "Cn1cnc2c1c(=O)n(c(=O)n2C)C" },
-  { name: "Ibuprofen", smiles: "CC(C)Cc1ccc(cc1)C(C)C(=O)O" },
-  { name: "Metformin", smiles: "CN(C)C(=N)NC(N)=N" },
-  { name: "Paracetamol", smiles: "CC(=O)Nc1ccc(O)cc1" },
-];
 
 export default function HomePage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -67,21 +60,28 @@ export default function HomePage() {
       <aside className={styles.sidebar}>
         <div className={styles.logo}>
           <div className={styles.logoIcon} aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              <circle cx="11" cy="11" r="4" stroke="var(--accent-primary)" strokeWidth="1.5" />
-              <circle cx="3" cy="6" r="2.5" stroke="var(--accent-primary)" strokeWidth="1.2" strokeOpacity="0.6" />
-              <circle cx="19" cy="6" r="2.5" stroke="var(--accent-primary)" strokeWidth="1.2" strokeOpacity="0.6" />
-              <circle cx="3" cy="16" r="2.5" stroke="var(--accent-primary)" strokeWidth="1.2" strokeOpacity="0.6" />
-              <circle cx="19" cy="16" r="2.5" stroke="var(--accent-primary)" strokeWidth="1.2" strokeOpacity="0.6" />
-              <line x1="7" y1="9" x2="5.3" y2="7.5" stroke="var(--accent-primary)" strokeWidth="1.2" strokeOpacity="0.6" />
-              <line x1="15" y1="9" x2="16.7" y2="7.5" stroke="var(--accent-primary)" strokeWidth="1.2" strokeOpacity="0.6" />
-              <line x1="7" y1="13" x2="5.3" y2="14.5" stroke="var(--accent-primary)" strokeWidth="1.2" strokeOpacity="0.6" />
-              <line x1="15" y1="13" x2="16.7" y2="14.5" stroke="var(--accent-primary)" strokeWidth="1.2" strokeOpacity="0.6" />
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="pharmerPillTop" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#34d399" />
+                  <stop offset="100%" stopColor="#059669" />
+                </linearGradient>
+                <linearGradient id="pharmerPillBottom" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#38bdf8" />
+                  <stop offset="100%" stopColor="#0284c7" />
+                </linearGradient>
+              </defs>
+              
+              <g transform="rotate(-35 12 12)">
+                <path d="M7 11.5V7A5 5 0 0 1 17 7V11.5H7Z" fill="url(#pharmerPillTop)" />
+                <path d="M7 12.5V17A5 5 0 0 0 17 17V12.5H7Z" fill="url(#pharmerPillBottom)" />
+                <rect x="6.5" y="11.25" width="11" height="1.5" fill="#0f131a" rx="0.75" />
+              </g>
             </svg>
           </div>
           <div>
-            <h1 className={styles.logoTitle}>PharmaRAG</h1>
-            <p className={styles.logoSub}>Drug Information System</p>
+            <h1 className={styles.logoTitle}>Pharmer</h1>
+            <p className={styles.logoSub}>Drug information retrieval</p>
           </div>
         </div>
 
@@ -100,33 +100,7 @@ export default function HomePage() {
             </button>
           </div>
 
-          <div className={styles.navSection}>
-            <span className={styles.navLabel}>Recent Queries</span>
-            {RECENT_QUERIES.map((q) => (
-              <button
-                key={q.name}
-                type="button"
-                className={styles.historyItem}
-                onClick={() => handleQuery(q.smiles)}
-                disabled={loading}
-              >
-                <svg
-                  className={styles.historyIcon}
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-                <span>{q.name}</span>
-              </button>
-            ))}
-          </div>
+
         </nav>
 
         <div className={styles.sidebarFooter}>

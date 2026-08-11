@@ -80,7 +80,7 @@
 }
 
 .newChatBtn:hover {
-  background: rgba(0, 212, 170, 0.08);
+  background: var(--accent-primary-dim);
   border-color: var(--border-accent);
   color: var(--accent-primary);
 }
@@ -93,9 +93,7 @@
 }
 
 .navLabel {
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 0.72rem;
   color: var(--text-muted);
   font-weight: 600;
   padding: 0 8px;

@@ -9,6 +9,14 @@ interface Props {
   structure: ChemicalStructure;
 }
 
+function formatChemicalFormula(formula: string): string {
+  const subscripts: { [key: string]: string } = {
+    "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄",
+    "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉"
+  };
+  return formula.split("").map(char => subscripts[char] || char).join("");
+}
+
 export default function StructureViewer({ structure }: Props) {
   const [imgError, setImgError] = useState(false);
 
@@ -31,67 +39,70 @@ export default function StructureViewer({ structure }: Props) {
       </div>
 
       <div className={styles.properties}>
-        <div className={styles.propGrid}>
-          {structure.iupac_name && (
-            <Prop label="IUPAC name" value={structure.iupac_name} mono={false} />
-          )}
-          {structure.molecular_formula && (
-            <Prop label="Formula" value={structure.molecular_formula} mono />
-          )}
-          {structure.molecular_weight && (
-            <Prop label="Mol. weight" value={`${structure.molecular_weight} g/mol`} mono />
-          )}
-          {structure.pubchem_cid && (
-            <Prop
-              label="PubChem CID"
-              value={String(structure.pubchem_cid)}
-              mono
-              link={`https://pubchem.ncbi.nlm.nih.gov/compound/${structure.pubchem_cid}`}
-            />
-          )}
-        </div>
+        <table className={styles.structureTable}>
+          <tbody>
+            {structure.molecular_formula && (
+              <tr>
+                <td className={styles.tableLabel}>Formula</td>
+                <td className={`${styles.tableValue} text-mono`}>
+                  <strong>{formatChemicalFormula(structure.molecular_formula)}</strong>
+                </td>
+              </tr>
+            )}
+            {structure.molecular_weight && (
+              <tr>
+                <td className={styles.tableLabel}>Molecular weight</td>
+                <td className={styles.tableValue}>
+                  <strong>{structure.molecular_weight} g/mol</strong>
+                </td>
+              </tr>
+            )}
+            {structure.iupac_name && (
+              <tr>
+                <td className={styles.tableLabel}>IUPAC name</td>
+                <td className={styles.tableValue}>{structure.iupac_name}</td>
+              </tr>
+            )}
+            {structure.pubchem_cid && (
+              <tr>
+                <td className={styles.tableLabel}>PubChem CID</td>
+                <td className={styles.tableValue}>
+                  <a
+                    href={`https://pubchem.ncbi.nlm.nih.gov/compound/${structure.pubchem_cid}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.tableLink}
+                  >
+                    {structure.pubchem_cid}
+                  </a>
+                </td>
+              </tr>
+            )}
+            {structure.smiles && (
+              <tr>
+                <td className={styles.tableLabel}>SMILES</td>
+                <td className={styles.tableValue}>
+                  <code className={styles.codeBlock}>{structure.smiles}</code>
+                </td>
+              </tr>
+            )}
+            {structure.inchi && (
+              <tr>
+                <td className={styles.tableLabel}>InChI</td>
+                <td className={styles.tableValue}>
+                  <code className={styles.codeBlockMuted}>{structure.inchi}</code>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
 
-        <div className={styles.smilesRow}>
-          <span className={styles.smilesLabel}>SMILES</span>
-          <code className={styles.smiles}>{structure.smiles}</code>
-        </div>
-
-        {structure.inchi && (
-          <div className={styles.smilesRow}>
-            <span className={styles.smilesLabel}>InChI</span>
-            <code className={`${styles.smiles} ${styles.smilesMuted}`}>
-              {structure.inchi}
-            </code>
+        {structure.sources && structure.sources.length > 0 && (
+          <div className={styles.citationContainer}>
+            <CitationBadge citations={structure.sources} />
           </div>
         )}
-
-        <CitationBadge citations={structure.sources} />
       </div>
-    </div>
-  );
-}
-
-function Prop({
-  label,
-  value,
-  mono,
-  link,
-}: {
-  label: string;
-  value: string;
-  mono: boolean;
-  link?: string;
-}) {
-  return (
-    <div className={styles.prop}>
-      <span className={styles.propLabel}>{label}</span>
-      {link ? (
-        <a href={link} target="_blank" rel="noopener noreferrer" className={`${styles.propValue} ${styles.propLink} ${mono ? "text-mono" : ""}`}>
-          {value}
-        </a>
-      ) : (
-        <span className={`${styles.propValue} ${mono ? "text-mono" : ""}`}>{value}</span>
-      )}
     </div>
   );
 }

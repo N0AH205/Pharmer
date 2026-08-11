@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSME Molecular Structure Editor</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #ffffff;
+      overflow: hidden;
+    }
+    #jsme_container {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+  <script type="text/javascript">
+    var jsmeApplet;
+    function jsmeOnLoad() {
+      try {
+        if (typeof JSApplet !== "undefined" && JSApplet.JSME) {
+          jsmeApplet = new JSApplet.JSME("jsme_container", "100%", "100%", {
+            options: "smiles,star,polarnitro,query"
+          });
+        } else if (typeof JSME !== "undefined") {
+          jsmeApplet = new JSME("jsme_container", "100%", "100%", {
+            options: "smiles,star,polarnitro,query"
+          });
+        }
+        if (jsmeApplet) {
+          jsmeApplet.setCallBack("AfterStructureModified", function() {
+            try {
+              var smiles = jsmeApplet.smiles();
+              window.parent.postMessage({ type: "JSME_SMILES", smiles: smiles }, "*");
+            } catch(e) {}
+          });
+        }
+      } catch(err) {
+        console.error("JSME init error:", err);
+      }
+    }
+
+    window.addEventListener("message", function(e) {
+      if (e.data && e.data.type === "SET_SMILES" && jsmeApplet) {
+        try {
+          if (e.data.smiles) {
+            jsmeApplet.readGenericMolecularInput(e.data.smiles);
+          } else {
+            jsmeApplet.reset();
+          }
+        } catch(err) {}
+      }
+    });
+  </script>
+  <script type="text/javascript" src="https://jsme-editor.github.io/dist/jsme/jsme.nocache.js"></script>
+</head>
+<body>
+  <div id="jsme_container"></div>
+</body>
+</html>

@@ -33,24 +33,22 @@ export default function ChatInterface({ messages, loading }: Props) {
             <line x1="32" y1="28" x2="36" y2="30" stroke="var(--accent-primary)" strokeWidth="1.5" strokeOpacity="0.5" />
           </svg>
         </div>
-        <h2 className={styles.emptyTitle}>Enter a SMILES string to begin</h2>
+        <h2 className={styles.emptyTitle}>Start a drug query</h2>
         <p className={styles.emptyDesc}>
-          Submit any valid SMILES notation to retrieve a detailed pharmacological
-          breakdown — Overview, Pharmacodynamics, Pharmacokinetics (ADME),
-          Safety &amp; Toxicology, and Drug History.
+          Enter a drug name, SMILES notation, or PubChem CID to retrieve available pharmacological information.
         </p>
         <div className={styles.emptyHints}>
           <span className={styles.hint}>
             <span className={styles.hintDot} />
-            All fields are grounded in cited sources
+            Responses are grounded in cited sources.
           </span>
           <span className={styles.hint}>
             <span className={styles.hintDot} />
-            Missing data is flagged, never fabricated
+            Missing information is explicitly flagged.
           </span>
           <span className={styles.hint}>
             <span className={styles.hintDot} />
-            Educational use only — not clinical advice
+            Educational use only — not clinical advice.
           </span>
         </div>
       </div>
@@ -65,7 +63,7 @@ export default function ChatInterface({ messages, loading }: Props) {
             <div className={styles.userBubble}>
               <div className={styles.userAvatar} aria-label="You">You</div>
               <div className={styles.userContent}>
-                <span className={styles.userLabel}>SMILES query</span>
+                <span className={styles.userLabel}>Drug query</span>
                 <code className={styles.userSmiles}>{msg.smiles}</code>
               </div>
             </div>
@@ -73,13 +71,23 @@ export default function ChatInterface({ messages, loading }: Props) {
 
           {msg.role === "assistant" && msg.drugInfo && (
             <div className={styles.assistantBubble}>
-              <div className={styles.assistantAvatar} aria-label="PharmaRAG">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <circle cx="8" cy="8" r="3" fill="var(--accent-primary)" />
-                  <circle cx="2" cy="4" r="1.5" fill="var(--accent-primary)" fillOpacity="0.5" />
-                  <circle cx="14" cy="4" r="1.5" fill="var(--accent-primary)" fillOpacity="0.5" />
-                  <circle cx="2" cy="12" r="1.5" fill="var(--accent-primary)" fillOpacity="0.5" />
-                  <circle cx="14" cy="12" r="1.5" fill="var(--accent-primary)" fillOpacity="0.5" />
+              <div className={styles.assistantAvatar} aria-label="Pharmer">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="avatarPillTop" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#34d399" />
+                      <stop offset="100%" stopColor="#059669" />
+                    </linearGradient>
+                    <linearGradient id="avatarPillBottom" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#38bdf8" />
+                      <stop offset="100%" stopColor="#0284c7" />
+                    </linearGradient>
+                  </defs>
+                  <g transform="rotate(-35 12 12)">
+                    <path d="M7 11.5V7A5 5 0 0 1 17 7V11.5H7Z" fill="url(#avatarPillTop)" />
+                    <path d="M7 12.5V17A5 5 0 0 0 17 17V12.5H7Z" fill="url(#avatarPillBottom)" />
+                    <rect x="6.5" y="11.25" width="11" height="1.5" fill="#0f131a" rx="0.75" />
+                  </g>
                 </svg>
               </div>
               <div className={styles.assistantContent}>

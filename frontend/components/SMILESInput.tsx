@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import styles from "./SMILESInput.module.css";
+import MoleculeDrawerModal from "./MoleculeDrawerModal";
 
 interface Props {
   onSubmit: (smiles: string) => void;
@@ -18,6 +19,7 @@ const EXAMPLE_SMILES = [
 export default function SMILESInput({ onSubmit, loading }: Props) {
   const [value, setValue] = useState("");
   const [focused, setFocused] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -58,11 +60,11 @@ export default function SMILESInput({ onSubmit, loading }: Props) {
             onChange={(e) => setValue(e.target.value)}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
-            placeholder="Enter SMILES string…  e.g. CC(=O)Oc1ccccc1C(=O)O"
+            placeholder="Search by drug name, SMILES, or PubChem CID..."
             spellCheck={false}
             autoComplete="off"
             autoCorrect="off"
-            aria-label="SMILES string input"
+            aria-label="Drug query input"
             disabled={loading}
           />
 
@@ -79,6 +81,22 @@ export default function SMILESInput({ onSubmit, loading }: Props) {
               </svg>
             </button>
           )}
+
+          {/* Draw Molecule Button */}
+          <button
+            type="button"
+            className={styles.drawBtn}
+            onClick={() => setIsDrawerOpen(true)}
+            disabled={loading}
+            title="Open visual molecule drawer"
+            aria-label="Draw chemical structure visually"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+            </svg>
+            <span>Draw</span>
+          </button>
 
           <button
             type="submit"
@@ -99,6 +117,7 @@ export default function SMILESInput({ onSubmit, loading }: Props) {
             )}
           </button>
         </div>
+        <span className={styles.inputHelper}>Supports drug names, SMILES, and PubChem identifiers</span>
       </form>
 
       {/* Quick examples */}
@@ -119,6 +138,14 @@ export default function SMILESInput({ onSubmit, loading }: Props) {
           ))}
         </div>
       </div>
+
+      {/* Visual Molecule Drawer Modal */}
+      <MoleculeDrawerModal
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        onApply={(smiles) => setValue(smiles)}
+        initialSmiles={value}
+      />
     </div>
   );
 }

@@ -53,10 +53,10 @@ export interface ADMEFields {
 // ── Toxicology ────────────────────────────────────────────────────────────────
 
 export interface ToxicologyFields {
-  ld50: FieldValue;
-  toxic_doses: FieldValue;
-  organ_toxicity: FieldValue;
-  overdose_management: FieldValue;
+  acute_toxicity: FieldValue;
+  cytotoxicity: FieldValue;
+  genetic_toxicology: FieldValue;
+  hazard_classifications: FieldValue;
 }
 
 // ── Therapeutic Profile ───────────────────────────────────────────────────────

@@ -12,13 +12,47 @@ interface Props {
   data: DrugInfo;
 }
 
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: "overview",          label: "Overview",          icon: "🧬" },
-  { id: "pharmacodynamics",  label: "Pharmacodynamics",  icon: "⚙️" },
-  { id: "pharmacokinetics",  label: "Pharmacokinetics",  icon: "🔄" },
-  { id: "safety",            label: "Safety",            icon: "🛡️" },
-  { id: "history",           label: "History",           icon: "📖" },
+const TABS: { id: Tab; label: string }[] = [
+  { id: "overview",          label: "Overview" },
+  { id: "pharmacodynamics",  label: "Pharmacology" },
+  { id: "pharmacokinetics",  label: "Pharmacokinetics" },
+  { id: "safety",            label: "Safety" },
+  { id: "history",           label: "Evidence" },
 ];
+
+const MISSING_MESSAGES: { [key: string]: string } = {
+  indications: "No approved indications or clinical uses found in current ingested reference labels.",
+  contraindications: "No absolute or relative contraindications documented in safety sources.",
+  adverse_effects: "No common or serious adverse drug reactions found in retrieved database sources.",
+  drug_interactions: "No clinically significant drug-drug or drug-disease interactions found in current knowledge base.",
+  mechanism_of_action: "Mechanism of action details not documented in retrieved clinical pharmacology sources.",
+  physiologic_effect: "Physiologic or systemic functional effects not indexed in current database.",
+  binding_affinity: "No quantitative binding affinity (Kd/Ki) data retrieved for this compound.",
+  selectivity: "Selectivity profile data not found in ingested pharmacology studies.",
+  potency: "No quantitative potency (EC50/ED50) metrics indexed in current sources.",
+  efficacy: "Efficacy parameters (Emax) not documented in reference research sources.",
+  absorption: "Absorption and bioavailability details not found in ingested pharmacokinetics labels.",
+  distribution: "Distribution and protein binding data not documented in current pk index.",
+  metabolism: "Hepatic metabolism and enzyme pathway details not indexed in ingested sources.",
+  excretion: "Elimination half-life and excretion pathways not found in pk reference labels.",
+  acute_toxicity: "No acute toxicity (LD50/LC50) values found in safety records.",
+  cytotoxicity: "No cytotoxicity or cell viability parameters retrieved for this compound.",
+  genetic_toxicology: "No genetic toxicology or carcinogenicity data found in current index.",
+  hazard_classifications: "No GHS or international hazard classifications found in safety records.",
+  background: "Historical or background introduction details not found in current index.",
+  discovery: "Discovery and molecular origin details not documented in reference history.",
+  development: "Preclinical optimization and development details not indexed.",
+  clinical_trials: "Clinical trials and approval history details not found in current database.",
+  classification: "No clinical classification details found in current ingested sources."
+};
+
+function formatChemicalFormula(formula: string): string {
+  const subscripts: { [key: string]: string } = {
+    "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄",
+    "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉"
+  };
+  return formula.split("").map(char => subscripts[char] || char).join("");
+}
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -28,18 +62,19 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function InfoBlock({
   label,
-  icon,
   field,
+  slug,
   accentColor = "teal",
 }: {
   label: string;
-  icon: string;
   field: FieldValue;
+  slug: string;
   accentColor?: "teal" | "indigo" | "amber" | "rose" | "violet";
 }) {
   const [expanded, setExpanded] = useState(true);
   const isMissing = !field || field.missing || !field.content;
   const sources = field?.sources || [];
+  const missingText = MISSING_MESSAGES[slug] || "No clinical details found in current ingested sources.";
 
   return (
     <div
@@ -52,12 +87,11 @@ function InfoBlock({
         aria-expanded={expanded}
         id={`field-${label.toLowerCase().replace(/\s+/g, "-")}`}
       >
-        <span className={styles.infoBlockIcon}>{icon}</span>
         <span className={styles.infoBlockLabel}>{label}</span>
         <span className={styles.infoBlockRight}>
           {isMissing && (
             <span className={`badge badge-amber ${styles.missingBadge}`}>
-              Data unavailable
+              Not found
             </span>
           )}
           <svg
@@ -82,10 +116,7 @@ function InfoBlock({
       {expanded && (
         <div className={styles.infoBlockBody}>
           {isMissing ? (
-            <p className={styles.missingText}>
-              No data available from current sources. This field will be populated
-              once relevant documents are ingested into the knowledge base.
-            </p>
+            <p className={styles.missingText}>{missingText}</p>
           ) : (
             <div className={styles.infoBlockContent}>
               {field.content!.split("\n").map((line, i) =>
@@ -102,15 +133,6 @@ function InfoBlock({
           {sources.length > 0 && <CitationBadge citations={sources} />}
         </div>
       )}
-    </div>
-  );
-}
-
-function MetaChip({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div className={styles.metaChip}>
-      <span className={styles.metaChipLabel}>{label}</span>
-      <span className={`${styles.metaChipValue} ${mono ? styles.metaChipMono : ""}`}>{value}</span>
     </div>
   );
 }
@@ -182,7 +204,6 @@ export default function DrugInfoCard({ data }: Props) {
             className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ""}`}
             onClick={() => setActiveTab(tab.id)}
           >
-            <span className={styles.tabIcon}>{tab.icon}</span>
             {tab.label}
           </button>
         ))}
@@ -197,20 +218,47 @@ export default function DrugInfoCard({ data }: Props) {
 
             <section className={styles.section}>
               <SectionLabel>Drug Identity</SectionLabel>
-              <div className={styles.metaGrid}>
-                {data.chemical_structure.molecular_formula && (
-                  <MetaChip label="Formula" value={data.chemical_structure.molecular_formula} mono />
-                )}
-                {data.chemical_structure.molecular_weight && (
-                  <MetaChip label="Mol. Weight" value={`${data.chemical_structure.molecular_weight} g/mol`} mono />
-                )}
-                {data.chemical_structure.iupac_name && (
-                  <MetaChip label="IUPAC Name" value={data.chemical_structure.iupac_name} />
-                )}
-                {data.chemical_structure.pubchem_cid && (
-                  <MetaChip label="PubChem CID" value={String(data.chemical_structure.pubchem_cid)} mono />
-                )}
-              </div>
+              <table className={styles.metaTable}>
+                <tbody>
+                  {data.chemical_structure.molecular_formula && (
+                    <tr>
+                      <td className={styles.metaTableLabel}>Formula</td>
+                      <td className={`${styles.metaTableValue} text-mono`}>
+                        <strong>{formatChemicalFormula(data.chemical_structure.molecular_formula)}</strong>
+                      </td>
+                    </tr>
+                  )}
+                  {data.chemical_structure.molecular_weight && (
+                    <tr>
+                      <td className={styles.metaTableLabel}>Molecular weight</td>
+                      <td className={styles.metaTableValue}>
+                        <strong>{data.chemical_structure.molecular_weight} g/mol</strong>
+                      </td>
+                    </tr>
+                  )}
+                  {data.chemical_structure.iupac_name && (
+                    <tr>
+                      <td className={styles.metaTableLabel}>IUPAC name</td>
+                      <td className={styles.metaTableValue}>{data.chemical_structure.iupac_name}</td>
+                    </tr>
+                  )}
+                  {data.chemical_structure.pubchem_cid && (
+                    <tr>
+                      <td className={styles.metaTableLabel}>PubChem CID</td>
+                      <td className={styles.metaTableValue}>
+                        <a
+                          href={`https://pubchem.ncbi.nlm.nih.gov/compound/${data.chemical_structure.pubchem_cid}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={styles.tableLink}
+                        >
+                          {data.chemical_structure.pubchem_cid}
+                        </a>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </section>
 
             <div className={styles.divider} />
@@ -219,8 +267,8 @@ export default function DrugInfoCard({ data }: Props) {
               <SectionLabel>Therapeutic Classes</SectionLabel>
               <InfoBlock
                 label="Clinical & Pharmacological Classification"
-                icon="🏷️"
                 field={safeField(data.therapeutic_classes)}
+                slug="classification"
                 accentColor="indigo"
               />
             </section>
@@ -235,7 +283,7 @@ export default function DrugInfoCard({ data }: Props) {
           </div>
         )}
 
-        {/* ── PHARMACODYNAMICS ── */}
+        {/* ── PHARMACOLOGY ── */}
         {activeTab === "pharmacodynamics" && (
           <div className={styles.tabPanel} role="tabpanel" aria-labelledby="tab-pharmacodynamics">
             <p className={styles.tabDescription}>
@@ -246,8 +294,8 @@ export default function DrugInfoCard({ data }: Props) {
               <SectionLabel>Mechanism of Action</SectionLabel>
               <InfoBlock
                 label="Mechanism of Action (Step-by-step)"
-                icon="⚙️"
                 field={safeField(pd.mechanism_of_action)}
+                slug="mechanism_of_action"
                 accentColor="teal"
               />
             </section>
@@ -258,8 +306,8 @@ export default function DrugInfoCard({ data }: Props) {
               <SectionLabel>Physiologic Effects</SectionLabel>
               <InfoBlock
                 label="Physiologic Effect"
-                icon="🫀"
                 field={safeField(pd.physiologic_effect)}
+                slug="physiologic_effect"
                 accentColor="teal"
               />
             </section>
@@ -271,26 +319,26 @@ export default function DrugInfoCard({ data }: Props) {
               <div className={styles.pdGrid}>
                 <InfoBlock
                   label="Binding Affinity (Kd / Ki)"
-                  icon="🔗"
                   field={safeField(pd.binding_affinity)}
+                  slug="binding_affinity"
                   accentColor="violet"
                 />
                 <InfoBlock
                   label="Selectivity"
-                  icon="🎯"
                   field={safeField(pd.selectivity)}
+                  slug="selectivity"
                   accentColor="violet"
                 />
                 <InfoBlock
                   label="Potency (EC₅₀ / ED₅₀)"
-                  icon="📊"
                   field={safeField(pd.potency)}
+                  slug="potency"
                   accentColor="violet"
                 />
                 <InfoBlock
                   label="Efficacy (Emax)"
-                  icon="📈"
                   field={safeField(pd.efficacy)}
+                  slug="efficacy"
                   accentColor="violet"
                 />
               </div>
@@ -309,26 +357,26 @@ export default function DrugInfoCard({ data }: Props) {
             <div className={styles.admeGrid}>
               <InfoBlock
                 label="Absorption"
-                icon="📥"
                 field={data.adme.absorption}
+                slug="absorption"
                 accentColor="teal"
               />
               <InfoBlock
                 label="Distribution"
-                icon="🌐"
                 field={data.adme.distribution}
+                slug="distribution"
                 accentColor="teal"
               />
               <InfoBlock
                 label="Metabolism"
-                icon="⚗️"
                 field={data.adme.metabolism}
+                slug="metabolism"
                 accentColor="teal"
               />
               <InfoBlock
                 label="Excretion"
-                icon="📤"
                 field={data.adme.excretion}
+                slug="excretion"
                 accentColor="teal"
               />
             </div>
@@ -344,14 +392,14 @@ export default function DrugInfoCard({ data }: Props) {
               <SectionLabel>Therapeutic Profile</SectionLabel>
               <InfoBlock
                 label="Indications"
-                icon="✅"
                 field={safeField(tp.indications)}
+                slug="indications"
                 accentColor="teal"
               />
               <InfoBlock
                 label="Contraindications"
-                icon="🚫"
                 field={safeField(tp.contraindications)}
+                slug="contraindications"
                 accentColor="rose"
               />
             </section>
@@ -362,14 +410,14 @@ export default function DrugInfoCard({ data }: Props) {
               <SectionLabel>Adverse Effects & Interactions</SectionLabel>
               <InfoBlock
                 label="Adverse Effects"
-                icon="⚠️"
                 field={safeField(tp.adverse_effects)}
+                slug="adverse_effects"
                 accentColor="amber"
               />
               <InfoBlock
                 label="Drug Interactions"
-                icon="💊"
                 field={safeField(tp.drug_interactions)}
+                slug="drug_interactions"
                 accentColor="amber"
               />
             </section>
@@ -380,27 +428,27 @@ export default function DrugInfoCard({ data }: Props) {
               <SectionLabel>Toxicology</SectionLabel>
               <div className={styles.toxGrid}>
                 <InfoBlock
-                  label="LD₅₀ (Animal Models)"
-                  icon="🧪"
-                  field={safeField(tox.ld50)}
+                  label="Acute Toxicity (LD50, LC50)"
+                  field={safeField(tox.acute_toxicity)}
+                  slug="acute_toxicity"
                   accentColor="rose"
                 />
                 <InfoBlock
-                  label="Toxic Doses (Human)"
-                  icon="☠️"
-                  field={safeField(tox.toxic_doses)}
+                  label="Cytotoxicity (IC50, EC50, Cell Viability)"
+                  field={safeField(tox.cytotoxicity)}
+                  slug="cytotoxicity"
                   accentColor="rose"
                 />
                 <InfoBlock
-                  label="Organ Toxicity"
-                  icon="🫁"
-                  field={safeField(tox.organ_toxicity)}
+                  label="Genetic Toxicology"
+                  field={safeField(tox.genetic_toxicology)}
+                  slug="genetic_toxicology"
                   accentColor="rose"
                 />
                 <InfoBlock
-                  label="Overdose Management"
-                  icon="🏥"
-                  field={safeField(tox.overdose_management)}
+                  label="Hazard Classifications (GHS, IARC/NTP, EPA/ECHA)"
+                  field={safeField(tox.hazard_classifications)}
+                  slug="hazard_classifications"
                   accentColor="indigo"
                 />
               </div>
@@ -426,8 +474,8 @@ export default function DrugInfoCard({ data }: Props) {
                   <SectionLabel>Background</SectionLabel>
                   <InfoBlock
                     label="Medical Context & Unmet Need"
-                    icon="📜"
                     field={safeField(hist.background)}
+                    slug="background"
                     accentColor="indigo"
                   />
                 </div>
@@ -442,8 +490,8 @@ export default function DrugInfoCard({ data }: Props) {
                   <SectionLabel>Discovery</SectionLabel>
                   <InfoBlock
                     label="Lead Compound Origin"
-                    icon="🌿"
                     field={safeField(hist.discovery)}
+                    slug="discovery"
                     accentColor="indigo"
                   />
                 </div>
@@ -458,8 +506,8 @@ export default function DrugInfoCard({ data }: Props) {
                   <SectionLabel>Development</SectionLabel>
                   <InfoBlock
                     label="Optimization, Preclinical & Patents"
-                    icon="🏭"
                     field={safeField(hist.development)}
+                    slug="development"
                     accentColor="indigo"
                   />
                 </div>
@@ -473,8 +521,8 @@ export default function DrugInfoCard({ data }: Props) {
                   <SectionLabel>Clinical Trials</SectionLabel>
                   <InfoBlock
                     label="Phase I–III & Regulatory Approvals"
-                    icon="📋"
                     field={safeField(hist.clinical_trials)}
+                    slug="clinical_trials"
                     accentColor="indigo"
                   />
                 </div>
@@ -500,7 +548,7 @@ export default function DrugInfoCard({ data }: Props) {
         <span className={styles.footerText}>
           Generated {new Date(data.generated_at).toLocaleString()}
         </span>
-        <span className="badge badge-teal">PharmaRAG</span>
+        <span className="badge badge-teal">Pharmer</span>
       </div>
     </div>
   );
