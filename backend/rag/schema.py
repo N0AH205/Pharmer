@@ -76,10 +76,10 @@ class ADMEFields(BaseModel):
 # ── Toxicology section ────────────────────────────────────────────────────────
 
 class ToxicologyFields(BaseModel):
-    ld50: FieldValue           # Lethal dose 50 in animal models
-    toxic_doses: FieldValue    # Clinical toxic / overdose thresholds
-    organ_toxicity: FieldValue # Target organs for toxicity
-    overdose_management: FieldValue  # Antidotes, supportive care
+    acute_toxicity: FieldValue          # LD50, LC50 values with species and routes
+    cytotoxicity: FieldValue            # IC50, EC50, Cell viability & integrity
+    genetic_toxicology: FieldValue      # Carcinogenicity, genotoxicity, reproductive toxicity
+    hazard_classifications: FieldValue  # GHS, IARC/NTP, EPA/ECHA classifications
 
 
 # ── Therapeutic profile section ───────────────────────────────────────────────

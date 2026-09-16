@@ -146,19 +146,56 @@ async def get_compound_by_name(name: str) -> dict | None:
             return None
 
 
-async def enrich_structure(smiles: str) -> dict:
+async def get_compound_by_cid(cid: int) -> dict | None:
     """
-    Main helper: given a SMILES, return a dict suitable for ChemicalStructure.
+    Resolve a PubChem CID to compound properties.
+    Returns a dict with CID, IUPACName, MolecularFormula, etc., or None if not found.
+    """
+    url = f"{BASE_URL}/compound/cid/{cid}/property/{PROPERTY_FIELDS}/JSON"
+    async with httpx.AsyncClient(timeout=15) as client:
+        try:
+            resp = await client.get(url)
+            if resp.status_code != 200:
+                return None
+            data = resp.json()
+            props = data.get("PropertyTable", {}).get("Properties", [])
+            return props[0] if props else None
+        except Exception:
+            return None
+
+
+async def enrich_structure(query: str) -> dict:
+    """
+    Main helper: given a SMILES, drug name, or PubChem CID, return a dict suitable for ChemicalStructure.
+
+    Tries resolving by:
+      1. CID (if query is purely numeric)
+      2. SMILES
+      3. Drug Name (as a fallback)
 
     Fetches synonyms so the query builder can use the common name (e.g. "Aspirin").
-    If SMILES lookup resolves to an isotope/derivative entry (e.g. [14C]metformin),
+    If lookup resolves to an isotope/derivative entry (e.g. [14C]metformin),
     cross-checks against common_name via PubChem name resolution to obtain the
     parent compound CID (e.g. CID 4091).
     """
-    props = await get_compound_by_smiles(smiles)
+    query = query.strip()
+    props = None
+
+    # 1. Check if numeric CID
+    if query.isdigit():
+        props = await get_compound_by_cid(int(query))
+
+    # 2. Try SMILES lookup
+    if not props:
+        props = await get_compound_by_smiles(query)
+
+    # 3. Try Name lookup
+    if not props:
+        props = await get_compound_by_name(query)
+
     if not props:
         return {
-            "smiles": smiles,
+            "smiles": query,
             "pubchem_cid": None,
             "iupac_name": None,
             "common_name": None,
@@ -197,7 +234,7 @@ async def enrich_structure(smiles: str) -> dict:
                     synonyms = parent_syns
 
     return {
-        "smiles": props.get("CanonicalSMILES") or props.get("ConnectivitySMILES") or smiles,
+        "smiles": props.get("CanonicalSMILES") or props.get("ConnectivitySMILES") or query,
         "inchi": props.get("InChI"),
         "iupac_name": iupac,
         "common_name": common_name,

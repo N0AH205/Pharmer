@@ -44,7 +44,7 @@ async def run_pipeline(
     Full RAG pipeline: SMILES → structured DrugInfo.
 
     Args:
-        smiles: A valid SMILES string.
+        smiles: A valid SMILES string or drug query.
         debug:  If True, returns a dict:
                     {
                         "result": DrugInfo.model_dump(),
@@ -59,14 +59,18 @@ async def run_pipeline(
     Raises:
         ValueError: If the LLM returns malformed JSON.
         pydantic.ValidationError: If the LLM output doesn't match DrugInfo.
+        ClinicalAdviceRefusal: If the query requests patient-specific clinical advice.
     """
+    # ── 0. Safety Guardrail: check for clinical advice queries ────────────
+    from rag.safety import check_query_safety, ClinicalAdviceRefusal
+    is_safe, refusal = await check_query_safety(smiles)
+    if not is_safe:
+        raise ClinicalAdviceRefusal(refusal or "Query contains clinical advice and was refused.")
+
     retriever = get_retriever()
 
     # ── 1. PubChem: resolve SMILES → drug identity ────────────────────────
     structure_data = await enrich_structure(smiles)
-
-    # ── 2. Build retrieval query using common name + IUPAC + synonyms ─────
-    query = build_retrieval_query(structure_data, field=None)
 
     # ── 3. Retrieve relevant chunks from ChromaDB ─────────────────────────
     if not retriever.is_ready():
@@ -77,16 +81,84 @@ async def run_pipeline(
     # Use the stable PubChem CID as the metadata filter for two-stage retrieval:
     # Stage 1 — only this drug's chunks; Stage 2 — rank by semantic similarity.
     pubchem_cid = str(structure_data.get("pubchem_cid") or "")
-    chunks = await retriever.retrieve(
-        query,
-        n_results=8,
-        pubchem_cid=pubchem_cid or None,
-    )
 
+    # ── 1.5. Dynamic JIT Ingestion (OOD Drugs) ───────────────────────────
+    if pubchem_cid and retriever.get_drug_chunk_count(pubchem_cid) == 0:
+        common_name = structure_data.get("common_name") or structure_data.get("iupac_name") or "Unknown"
+        logger.info(f"Dynamic JIT Ingestion triggered for '{common_name}' (CID: {pubchem_cid})")
+        print(f"JIT Ingestion: '{common_name}' (CID: {pubchem_cid}) not found in DB. Ingesting dynamically...")
+
+        drug_dict = {
+            "name": common_name,
+            "smiles": structure_data.get("smiles") or smiles,
+            "cid": int(pubchem_cid) if pubchem_cid.isdigit() else None,
+        }
+
+        try:
+            from ingest.run_ingest import ingest_drug
+            # Ingest using the retriever's collection
+            chunks_count = await ingest_drug(drug_dict, retriever.collection)
+            if chunks_count > 0:
+                logger.info(f"Dynamic JIT Ingestion successful: stored {chunks_count} chunk(s) for CID {pubchem_cid}")
+                print(f"JIT Ingestion: successfully stored {chunks_count} chunk(s) for '{common_name}'")
+            else:
+                logger.warning(f"Dynamic JIT Ingestion yielded 0 chunks for CID {pubchem_cid}")
+        except Exception as e:
+            logger.error(f"Failed to dynamically ingest drug CID {pubchem_cid}: {e}", exc_info=True)
+            print(f"JIT Ingestion Warning: failed to dynamically ingest drug CID {pubchem_cid} ({e}). Falling back...")
+
+    # Define retrieval categories with their specific query parameters
+    categories = [
+        {"field": "moa",             "n": 6},
+        {"field": "adme",            "n": 6},
+        {"field": "adverse_effects", "n": 5},
+        {"field": "indications",     "n": 4},
+        {"field": "toxicology",      "n": 4},
+        {"field": "interactions",    "n": 4},
+        {"field": "history",         "n": 4},
+    ]
+
+    # Build queries and execute concurrently
+    retrieval_tasks = []
+    for cat in categories:
+        cat_query = build_retrieval_query(structure_data, field=cat["field"])
+        retrieval_tasks.append(
+            retriever.retrieve(
+                cat_query,
+                n_results=cat["n"],
+                pubchem_cid=pubchem_cid or None,
+            )
+        )
+
+    # Await all retrieval tasks concurrently
+    import asyncio
+    results = await asyncio.gather(*retrieval_tasks)
+
+    # Flatten and deduplicate by chunk text
+    all_chunks = []
+    for r in results:
+        all_chunks.extend(r)
+
+    seen = set()
+    chunks = []
+    for chunk in all_chunks:
+        txt = chunk.get("text", "")
+        if txt and txt not in seen:
+            seen.add(txt)
+            chunks.append(chunk)
+
+    if not chunks:
+        # Fallback: single generic query if category-specific retrieval returns nothing
+        query = build_retrieval_query(structure_data, field=None)
+        chunks = await retriever.retrieve(
+            query,
+            n_results=8,
+            pubchem_cid=pubchem_cid or None,
+        )
 
     if not chunks:
         raise ValueError(
-            f"ChromaDB returned 0 chunks for query {query!r}. "
+            f"ChromaDB returned 0 chunks for drug CID {pubchem_cid}. "
             "Run python -m ingest.run_ingest to populate the knowledge base."
         )
 
@@ -176,10 +248,10 @@ async def run_pipeline(
                 excretion=_MISSING,
             ),
             toxicology=ToxicologyFields(
-                ld50=_MISSING,
-                toxic_doses=_MISSING,
-                organ_toxicity=_MISSING,
-                overdose_management=_MISSING,
+                acute_toxicity=_MISSING,
+                cytotoxicity=_MISSING,
+                genetic_toxicology=_MISSING,
+                hazard_classifications=_MISSING,
             ),
             therapeutic_profile=TherapeuticProfile(
                 indications=_MISSING,

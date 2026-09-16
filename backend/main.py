@@ -21,15 +21,15 @@ from rag.query_builder import build_retrieval_query
 from ingest.pubchem import enrich_structure
 
 app = FastAPI(
-    title="PharmaRAG API",
+    title="Pharmer API",
     description="Structured drug-information RAG system — Phase 3",
     version="0.3.0",
 )
 
-# Allow Next.js dev server and any local origin during development
+# Allow Next.js dev server and tunnel origins during development/testing
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -58,9 +58,15 @@ async def query_drug(req: QueryRequest):
     Flow: SMILES → PubChem → ChromaDB → Qwen → Pydantic → JSON
     Falls back to mock data if ChromaDB is empty.
     """
+    from rag.safety import ClinicalAdviceRefusal
     try:
         result: DrugInfo = await run_pipeline(req.smiles, debug=False)
         return {"success": True, "data": result.model_dump()}
+    except ClinicalAdviceRefusal as exc:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": str(exc)},
+        )
     except Exception as exc:
         return JSONResponse(
             status_code=500,
@@ -157,9 +163,15 @@ async def debug_pipeline(req: QueryRequest):
 
     NOT for production use — exposes internal retrieval data.
     """
+    from rag.safety import ClinicalAdviceRefusal
     try:
         result = await run_pipeline(req.smiles, debug=True)
         return {"success": True, **result}
+    except ClinicalAdviceRefusal as exc:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": str(exc)},
+        )
     except Exception as exc:
         return JSONResponse(
             status_code=500,

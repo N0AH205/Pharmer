@@ -108,15 +108,15 @@ def _parse_spl_xml(xml_text: str) -> dict[str, str]:
     return sections
 
 
-async def search_drug_labels(drug_name: str) -> list[dict]:
+async def search_drug_labels(drug_name: str, pagesize: int = 20) -> list[dict]:
     """
     Search DailyMed for SPL labels matching a drug name.
-    Returns up to 5 label metadata records (each has a 'setid').
+    Returns up to `pagesize` label metadata records (each has a 'setid').
     """
     async with httpx.AsyncClient(timeout=20) as client:
         resp = await client.get(
             f"{BASE_URL}/spls.json",
-            params={"drug_name": drug_name, "pagesize": 5},
+            params={"drug_name": drug_name, "pagesize": pagesize},
         )
         if resp.status_code != 200:
             return []

@@ -188,7 +188,7 @@ MOCK_ASPIRIN = DrugInfo(
         ),
     ),
     toxicology=ToxicologyFields(
-        ld50=FieldValue(
+        acute_toxicity=FieldValue(
             content=(
                 "Mouse (oral): LD50 ~250 mg/kg\n"
                 "Rat (oral): LD50 ~200 mg/kg\n"
@@ -200,51 +200,36 @@ MOCK_ASPIRIN = DrugInfo(
             ),
             sources=[Citation(source="PubChem CID 2244 — Toxicology", url="https://pubchem.ncbi.nlm.nih.gov/compound/2244")],
         ),
-        toxic_doses=FieldValue(
+        cytotoxicity=FieldValue(
             content=(
-                "Salicylism (mild toxicity): Serum salicylate >200–300 µg/mL; tinnitus, "
-                "hearing loss, nausea, vomiting.\n"
-                "Moderate toxicity: Salicylate 300–500 µg/mL; hyperpnea, fever, metabolic "
-                "acidosis, altered mental status.\n"
-                "Severe/life-threatening toxicity: Salicylate >500 µg/mL; CNS toxicity, "
-                "pulmonary edema, cardiovascular collapse.\n"
-                "Estimated lethal dose in adults: ~30–40 g (acute ingestion); as little as "
-                "150–200 mg/kg may be toxic in children."
+                "In vitro cytotoxicity (IC50): Salicylate uncouples oxidative phosphorylation "
+                "in mitochondria at concentrations >1-2 mM, leading to ATP depletion and cell death.\n"
+                "Reduces cell viability of gastric mucosal epithelial cells (in vitro) at "
+                "concentrations corresponding to therapeutic oral doses."
+            ),
+            sources=[Citation(source="PubChem CID 2244 — Toxicology", url="https://pubchem.ncbi.nlm.nih.gov/compound/2244")],
+        ),
+        genetic_toxicology=FieldValue(
+            content=(
+                "Carcinogenicity: Not classified as a human carcinogen (IARC Category 3). No evidence "
+                "of increased tumor incidence in long-term rodent bioassays.\n"
+                "Genotoxicity: Negative in standard Ames mutagenicity assay and in vivo micronucleus tests.\n"
+                "Reproductive/Developmental Toxicity: Pregnancy Category D (FDA). Avoid use during the third "
+                "trimester due to risk of premature closure of ductus arteriosus and maternal/neonatal bleeding."
             ),
             sources=[Citation(source="DailyMed SPL — Aspirin", url="https://dailymed.nlm.nih.gov")],
         ),
-        organ_toxicity=FieldValue(
+        hazard_classifications=FieldValue(
             content=(
-                "Gastrointestinal: COX-1 inhibition reduces gastroprotective prostaglandins "
-                "(PGE2, PGI2), leading to mucosal erosion, peptic ulcers, and GI haemorrhage "
-                "(risk even at low antiplatelet doses).\n"
-                "Hepatic: High-dose or chronic use can cause transient elevation of liver "
-                "enzymes; rare hepatotoxicity (Reye's syndrome in children with viral illness).\n"
-                "Renal: Inhibition of renal prostaglandins reduces GFR and may precipitate "
-                "acute kidney injury in susceptible patients (elderly, heart failure, CKD).\n"
-                "Hematologic: Irreversible inhibition of platelet COX-1 prolongs bleeding time; "
-                "risk of haemorrhage.\n"
-                "CNS: At toxic levels, salicylate uncouples oxidative phosphorylation and "
-                "causes cerebral edema, confusion, seizures."
+                "GHS Hazard Statements:\n"
+                "  • H302: Harmful if swallowed\n"
+                "  • H315: Causes skin irritation\n"
+                "  • H319: Causes serious eye irritation\n"
+                "  • H361: Suspected of damaging fertility or the unborn child\n"
+                "IARC Classification: Group 3 (Not classifiable as to its carcinogenicity to humans)\n"
+                "EPA/ECHA: Registered substance; subject to risk assessment for aquatic toxicity."
             ),
-            sources=[Citation(source="DailyMed SPL — Aspirin", url="https://dailymed.nlm.nih.gov")],
-        ),
-        overdose_management=FieldValue(
-            content=(
-                "Immediate: Gastric decontamination (activated charcoal if within 1–2 hours "
-                "and patient alert); do NOT induce emesis.\n"
-                "Urinary alkalinization: IV sodium bicarbonate (target urine pH 7.5–8.0) "
-                "greatly enhances renal salicylate excretion via ion trapping — key therapeutic "
-                "intervention.\n"
-                "IV fluids: Aggressive hydration to correct dehydration and support renal "
-                "clearance.\n"
-                "Glucose: Supplemental dextrose even if euglycemic, as CNS glucose may be "
-                "depleted despite normal serum glucose.\n"
-                "Hemodialysis: Indicated for severe toxicity (salicylate >800 µg/mL, acute "
-                "kidney injury, refractory acidosis, pulmonary edema, or altered mental status).\n"
-                "No specific antidote exists; management is supportive."
-            ),
-            sources=[Citation(source="DailyMed SPL — Aspirin", url="https://dailymed.nlm.nih.gov")],
+            sources=[Citation(source="PubChem CID 2244 — Toxicology", url="https://pubchem.ncbi.nlm.nih.gov/compound/2244")],
         ),
     ),
     therapeutic_profile=TherapeuticProfile(

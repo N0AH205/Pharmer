@@ -158,7 +158,7 @@ def resolve_field_citations(
     tox = result.get("toxicology")
     if not isinstance(tox, dict):
         tox = {}
-    for sub_key in ["ld50", "toxic_doses", "organ_toxicity", "overdose_management"]:
+    for sub_key in ["acute_toxicity", "cytotoxicity", "genetic_toxicology", "hazard_classifications"]:
         tox[sub_key] = _resolve_field_dict(tox.get(sub_key), source_map)
     result["toxicology"] = tox
 

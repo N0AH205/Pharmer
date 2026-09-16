@@ -24,6 +24,8 @@ FIELD_SUFFIXES: dict[str | None, str] = {
     "adverse_effects": "adverse effects side effects toxicity",
     "drug_interactions": "drug interactions clinical pharmacology",
     "adme":            "absorption distribution metabolism excretion pharmacokinetics",
+    "toxicology":      "toxicology acute toxicity ld50 cytotoxicity hazard",
+    "history":         "history discovery development origin clinical trials",
 }
 
 

@@ -43,8 +43,10 @@ def build_context(chunks: list[dict]) -> tuple[str, dict[str, dict]]:
             f"Field  : {chunk.get('field', 'general')}\n"
             f"URL    : {chunk.get('url', '')}\n"
         )
-        body = chunk.get("text", "").strip()
+        # Cap at 2500 chars — preserves context richness while discouraging verbatim reproduction
+        body = chunk.get("text", "").strip()[:2500]
         parts.append(f"{header}\n{body}")
+
 
     context = "\n\n---\n\n".join(parts)
     return context, source_map

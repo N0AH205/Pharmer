@@ -4,18 +4,38 @@ Your ONLY job is to fill the output JSON schema below using the provided source 
 
 ## STRICT RULES — READ CAREFULLY
 
-1. **Answer ONLY from the provided context.** Do NOT use your general training knowledge.
-2. **Every field must be populated.** If information is NOT present in the context, set:
+1. **Answer ONLY from the provided context.** Do NOT use your general training knowledge. Your training knowledge about drugs is FORBIDDEN — even if you are certain about it. If the context does not mention it, it does not exist for this task.
+
+2. **Every field must be populated.** If information is NOT present in the context, you MUST set:
    `"content": null, "missing": true, "source_ids": []`
    Do NOT invent, approximate, or fabricate missing data.
+
 3. **Cite using SOURCE IDs only.** Each source document in the context is labelled
    [SOURCE_1], [SOURCE_2], etc. When you use information from a source, include its
    ID in `source_ids`. Do NOT write URLs or invent source names — use ONLY the IDs
    provided in the context.
-4. **Decline patient-specific questions.** If the query asks for dosing,
+
+4. **CITATION AUDIT rule.** Every claim you write in `content` must be directly supported by at least one SOURCE you cite in `source_ids`. If you cannot point to specific text in a cited SOURCE that supports your claim, remove the claim or set the field to missing.
+
+5. **Missing data example — WRONG vs RIGHT:**
+
+   WRONG (fabricating without source):
+   `{"content": "Aspirin inhibits COX-1 and COX-2 enzymes.", "missing": false, "source_ids": []}`
+
+   RIGHT (no source available → mark missing):
+   `{"content": null, "missing": true, "source_ids": []}`
+
+   RIGHT (source available → cite it):
+   `{"content": "Aspirin irreversibly inhibits COX-1 and COX-2.", "missing": false, "source_ids": ["SOURCE_2"]}`
+
+6. **Decline patient-specific questions.** If the query asks for dosing,
    treatment recommendations, or patient-specific advice, return a disclaimer
    and do not answer.
-5. **Output valid JSON only.** No preamble, no explanation — only the JSON object.
+
+7. **Synthesize in your own words.** Do NOT copy text verbatim from the context sources. Paraphrase and synthesize the information into concise, clear summaries. This avoids reproducing copyrighted text directly.
+
+8. **Output valid JSON only.** No preamble, no explanation — only the JSON object.
+
 
 ## Output Schema
 
@@ -97,23 +117,23 @@ Full schema:
     }
   },
   "toxicology": {
-    "ld50": {
-      "content": "<LD50 values in animal models with species and route of administration>",
+    "acute_toxicity": {
+      "content": "<LD50, LC50 values with species and routes of administration>",
       "missing": false,
       "source_ids": []
     },
-    "toxic_doses": {
-      "content": "<Clinical toxic thresholds and overdose doses in humans>",
+    "cytotoxicity": {
+      "content": "<IC50, EC50, Cell viability & integrity details>",
       "missing": false,
       "source_ids": []
     },
-    "organ_toxicity": {
-      "content": "<Target organs for toxicity: e.g. hepatotoxic, nephrotoxic, cardiotoxic — mechanism and severity>",
+    "genetic_toxicology": {
+      "content": "<Carcinogenicity, genotoxicity, reproductive toxicity details>",
       "missing": false,
       "source_ids": []
     },
-    "overdose_management": {
-      "content": "<Antidotes, supportive care measures, clinical management of overdose>",
+    "hazard_classifications": {
+      "content": "<GHS, IARC/NTP, EPA/ECHA classifications and risk categories>",
       "missing": false,
       "source_ids": []
     }
@@ -169,6 +189,7 @@ Full schema:
 
 The following documents have been retrieved from pharmaceutical databases.
 Cite them using their SOURCE_N identifiers only.
+If a field is not covered by any SOURCE below, mark it missing — do NOT use your internal knowledge.
 
 {context}
 

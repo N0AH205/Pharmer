@@ -9,8 +9,8 @@ Two-stage retrieval:
 This design ensures drug identity correctness (100%) before semantic scoring.
 SOURCE_N labelling is done in context_builder.py, not here.
 
-Uses Ollama's nomic-embed-text model for fully local embeddings.
-Pull once: ollama pull nomic-embed-text
+Embeddings: Google text-embedding-004 via Gemini API (uses GEMINI_API_KEY).
+No local Ollama required.
 """
 
 from __future__ import annotations
@@ -18,20 +18,50 @@ from __future__ import annotations
 import os
 
 import chromadb
-import ollama
+import httpx
 
-CHROMA_PATH = os.getenv("CHROMA_PATH", "../data/chroma")
+def _resolve_chroma_path() -> str:
+    env_path = os.getenv("CHROMA_PATH")
+    if env_path and os.path.exists(env_path):
+        return env_path
+    candidates = [
+        "data/chroma",
+        "../data/chroma",
+        "/app/data/chroma",
+        os.path.join(os.path.dirname(__file__), "..", "data", "chroma"),
+        os.path.join(os.path.dirname(__file__), "..", "..", "data", "chroma"),
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return env_path or "../data/chroma"
+
+CHROMA_PATH = _resolve_chroma_path()
 COLLECTION_NAME = "pharma_docs"
-EMBED_MODEL = os.getenv("EMBED_MODEL", "nomic-embed-text")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+EMBED_MODEL = "gemini-embedding-001"
 
 
 def _embed(text: str) -> list[float]:
     """
-    Embed text using local Ollama (synchronous).
-    Uses ollama.embed() — current API in ollama >= 0.5.
+    Embed text using Google text-embedding-004 (synchronous, httpx).
+    Uses the same GEMINI_API_KEY as the LLM provider.
     """
-    resp = ollama.embed(model=EMBED_MODEL, input=text[:8000])
-    return resp.embeddings[0]
+    if not GEMINI_API_KEY:
+        raise ValueError("GEMINI_API_KEY is not set — cannot embed.")
+
+    url = (
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{EMBED_MODEL}:embedContent?key={GEMINI_API_KEY}"
+    )
+    payload = {
+        "model": f"models/{EMBED_MODEL}",
+        "content": {"parts": [{"text": text[:8000]}]},
+        "taskType": "RETRIEVAL_QUERY",
+    }
+    resp = httpx.post(url, json=payload, timeout=30.0)
+    resp.raise_for_status()
+    return resp.json()["embedding"]["values"]
 
 
 class Retriever:

@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const backendRes = await fetch("http://localhost:8000/query", {
+    const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
+    const backendRes = await fetch(`${backendUrl}/query`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ smiles: body.smiles }),
